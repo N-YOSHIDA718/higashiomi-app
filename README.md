@@ -1,1 +1,0 @@
-# higashiomi-app
