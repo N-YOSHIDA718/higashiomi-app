@@ -90,7 +90,7 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 .fi{width:100%;border:0.5px solid var(--bd);border-radius:8px;padding:10px;font-size:15px;outline:none;font-family:inherit;background:#fff}
 .fi:focus{border-color:var(--navy);border-width:1.5px}
 .mf{display:flex;gap:7px;justify-content:flex-end;margin-top:14px}
-.fab{position:fixed;top:72px;right:12px;background:var(--gold);border:none;border-radius:50%;width:44px;height:44px;font-size:22px;color:#fff;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,0.22);z-index:200;display:none;align-items:center;justify-content:center}
+.fab{position:fixed;bottom:90px;right:16px;background:var(--gold);border:none;border-radius:50%;width:50px;height:50px;font-size:24px;color:#fff;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,0.22);z-index:200;display:none;align-items:center;justify-content:center}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(26,58,122,0.95);color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;z-index:400;display:none;white-space:nowrap}
 .sr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:11px}
 .sb{background:#f8faff;border-radius:10px;border:0.5px solid var(--bd);padding:11px;text-align:center}
@@ -902,29 +902,34 @@ function clearAllData(){
     db.ref("boardData").remove();
     db.ref("survData").remove();
     db.ref("fileData").remove();
+    db.ref("staffData").remove();
   }
+  try{
+    localStorage.removeItem("sched2");
+    localStorage.removeItem("board2");
+    localStorage.removeItem("surv2");
+    localStorage.removeItem("staff2");
+  }catch(e){}
   renderAll();
   showToast("全データを削除しました");
 }
 function clearInitData(){
-  if(!confirm("サンプルデータを削除しますか？\n（自分が追加したデータも消えます）")) return;
-  schedData={};
-  boardData=boardData.filter(function(b){ return parseInt(b.id) > 1000000000000; });
-  survData=survData.filter(function(s){ return parseInt(s.id) > 1000000000000; });
-  fileData=fileData.filter(function(f){ return parseInt(f.id) > 1000000000000; });
+  if(!confirm("サンプルデータを削除しますか？")) return;
+  // Firebaseから全データを削除（リスナーが自動で再描画する）
   if(db){
-    db.ref("schedData").set(null);
-    db.ref("boardData").set(boardData.length>0 ? boardData : null);
-    db.ref("survData").set(survData.length>0 ? survData : null);
-    db.ref("fileData").set(fileData.length>0 ? fileData : null);
+    db.ref("schedData").remove();
+    db.ref("boardData").remove();
+    db.ref("survData").remove();
   }
+  // ローカルも削除
+  schedData={}; boardData=[]; survData=[];
   try{
     localStorage.removeItem("sched2");
     localStorage.removeItem("board2");
     localStorage.removeItem("surv2");
   }catch(e){}
   renderAll();
-  showToast("サンプルデータを削除しました");
+  showToast("サンプルデータを削除しました。自分が追加したデータも消えました");
 }
 function renderAll(){
   renderCal(); renderBoard(); renderHomeBoard(); renderSurveys(); renderStaff(staff); renderTodaySlots(); renderFiles();
