@@ -167,6 +167,14 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
     <span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;display:inline-block;margin:3px">📦 在庫管理</span>
     <span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;display:inline-block;margin:3px">📈 生産実績</span>
   </div>
+  <div class="card" style="border:1.5px solid #f8caca;background:#fff8f8">
+    <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px">🗑️ データ管理（管理者用）</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <button class="btn bsm" style="background:#d94040" onclick="clearAllData()">全データをリセット</button>
+      <button class="btn bsm bo" onclick="clearInitData()">サンプルデータを削除</button>
+    </div>
+    <div style="font-size:11px;color:var(--sub);margin-top:8px">※ リセットすると全員のデータが消えます</div>
+  </div>
 </div>
 
 <div class="pg" id="pg-schedule">
@@ -272,13 +280,15 @@ function listenAll(){
   db.ref("boardData").on("value", function(snap){
     var v = snap.val();
     if(v && Array.isArray(v)) boardData = v;
-    else if(v) boardData = Object.values(v);
+    else if(v) boardData = Object.values(v).filter(function(x){ return x && x.id; });
+    boardData.forEach(function(b){ b.id = parseInt(b.id)||b.id; });
     renderBoard(); renderHomeBoard(); updateDots();
   });
   db.ref("survData").on("value", function(snap){
     var v = snap.val();
     if(v && Array.isArray(v)) survData = v;
-    else if(v) survData = Object.values(v);
+    else if(v) survData = Object.values(v).filter(function(x){ return x && x.id; });
+    survData.forEach(function(s){ s.id = parseInt(s.id)||s.id; if(s.opts&&!Array.isArray(s.opts)) s.opts=Object.values(s.opts); });
     renderSurveys();
   });
   db.ref("staffData").on("value", function(snap){
@@ -288,8 +298,10 @@ function listenAll(){
   });
   db.ref("fileData").on("value", function(snap){
     var v = snap.val();
-    if(v && Array.isArray(v)) fileData = v;
-    else if(v) fileData = Object.values(v);
+    if(!v){ fileData=[]; }
+    else if(Array.isArray(v)) fileData = v;
+    else fileData = Object.values(v).filter(function(x){ return x && x.id; });
+    fileData.forEach(function(f){ f.id = parseInt(f.id)||f.id; });
     renderFiles(); updateFileNotice();
   });
 }
@@ -524,7 +536,7 @@ function openAddStaff(){
   );
 }
 function openEditBoard(id){
-  var b=boardData.find(function(x){ return x.id===id; }); if(!b) return;
+  var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; }); if(!b) return;
   modalMode="editboard";
   openModal("✏️ 伝言を編集",
     "<input type='hidden' id='feditid' value='"+id+"'>"+
@@ -540,6 +552,22 @@ function submitModal(){
     else { hUser.dept=document.getElementById("fhdept").value||hUser.dept; }
     hUser.ini=document.getElementById("fhini").value||hUser.ini;
     applyUser(); saveUser(); showToast(t("updated"));
+  } else if(modalMode==="editsched"){
+    var ds=document.getElementById("feschedds").value;
+    var id=parseInt(document.getElementById("feschedid").value);
+    var ti=document.getElementById("fetitle").value.trim();
+    var st=document.getElementById("festart").value;
+    var en=document.getElementById("feend").value;
+    var mb=document.getElementById("femember").value;
+    if(!ti){ showToast(t("needContent")); return; }
+    if(st>=en){ showToast(t("timeErr")); return; }
+    var data=schedData[ds]||[];
+    var s=data.find(function(x){ return x.id===id; });
+    if(s){ s.st=st; s.et=en; s.title=ti; s.member=mb; }
+    data.sort(function(a,b){ return a.st>b.st?1:-1; });
+    saveData();
+    if(!dbReady){ renderDayDetail(ds); renderCal(); renderTodaySlots(); }
+    showToast(t("updated"));
   } else if(modalMode==="sched"){
     var d=document.getElementById("fdate").value;
     var ti=document.getElementById("ftitle").value.trim();
@@ -560,7 +588,7 @@ function submitModal(){
     var ti=document.getElementById("fedittitle").value.trim();
     var bo=document.getElementById("feditbody").value.trim();
     if(!ti){ showToast(t("needTitle")); return; }
-    var b=boardData.find(function(x){ return x.id===id; });
+    var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; });
     if(b){ b.title=ti; b.body=bo; }
     saveData();
     if(!dbReady){ renderBoard(); renderHomeBoard(); }
@@ -620,14 +648,14 @@ function delSched(ds,id){
 }
 function delBoard(id){
   if(!confirm(t("delBoard"))) return;
-  boardData=boardData.filter(function(b){ return b.id!==id; });
+  boardData=boardData.filter(function(b){ return b.id!==id && parseInt(b.id)!==id; });
   saveData();
   if(!dbReady){ renderBoard(); renderHomeBoard(); }
   showToast(t("deleted"));
 }
 function delSurv(id){
   if(!confirm(t("delSurv"))) return;
-  survData=survData.filter(function(s){ return s.id!==id; });
+  survData=survData.filter(function(s){ return s.id!==id && parseInt(s.id)!==id; });
   saveData();
   if(!dbReady) renderSurveys();
   showToast(t("deleted"));
@@ -641,9 +669,9 @@ function delStaff(id){
 }
 function delFile(id){
   if(!confirm("このファイルを削除しますか？")) return;
-  fileData=fileData.filter(function(f){ return f.id!==id; });
+  fileData=fileData.filter(function(f){ return f.id!==id && parseInt(f.id)!==id; });
   saveFileData();
-  if(!dbReady){ renderFiles(); updateFileNotice(); }
+  renderFiles(); updateFileNotice();
   showToast(t("deleted"));
 }
 
@@ -678,6 +706,25 @@ function renderCal(){
 }
 function chMonth(dir){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} renderCal(); }
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
+function openEditSched(ds, id){
+  var data=schedData[ds]||[];
+  var s=data.find(function(x){ return x.id===id; }); if(!s) return;
+  modalMode="editsched";
+  document.getElementById("modalTitle").textContent="✏️ 予定を編集";
+  document.getElementById("modalBody").innerHTML=
+    "<input type='hidden' id='feschedds' value='"+ds+"'>"+
+    "<input type='hidden' id='feschedid' value='"+id+"'>"+
+    "<div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='festart'>"+timeOpts(s.st)+"</select></div>"+
+    "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='feend'>"+timeOpts(s.et||"10:00")+"</select></div>"+
+    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='fetitle' value='"+s.title+"'></div>"+
+    "<div class='fg'><label class='fl'>"+t("memberLbl")+"</label><select class='fi' id='femember'>"+staffOpts()+"</select></div>";
+  // 担当者を選択状態に
+  setTimeout(function(){
+    var sel=document.getElementById("femember");
+    if(sel && s.member){ sel.value=s.member; }
+  },50);
+  document.getElementById("modal").classList.add("on");
+}
 function renderDayDetail(ds){
   var parts=ds.split("-");
   var dow=dayNames[lang][new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])).getDay()];
@@ -691,10 +738,15 @@ function renderDayDetail(ds){
     var row=document.createElement("div"); row.className="tw";
     var timeStr=s.st+(s.et?" ～ "+s.et:"");
     var mid=s.member?"<div style='font-size:12px;color:var(--sub);margin-top:3px'>👤 "+s.member+"</div>":"";
-    var btn=document.createElement("button"); btn.className="db"; btn.textContent="✕";
-    btn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
+    var delBtn=document.createElement("button"); delBtn.className="db"; delBtn.textContent="✕";
+    delBtn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
+    var editBtn=document.createElement("button"); editBtn.className="db"; editBtn.textContent="✏️";
+    editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1";
+    editBtn.onclick=(function(ds2,id){ return function(){ openEditSched(ds2,id); }; })(ds,s.id);
     row.innerHTML="<div class='tt'>"+timeStr+"</div><div class='tb'><div class='tc'><div style='font-weight:600;font-size:15px'>"+s.title+"</div>"+mid+"</div></div>";
-    row.querySelector(".tb").appendChild(btn);
+    var tb=row.querySelector(".tb");
+    tb.appendChild(editBtn);
+    tb.appendChild(delBtn);
     slots.appendChild(row);
   });
 }
@@ -753,7 +805,8 @@ function renderSurveys(){
   });
 }
 function voteSurv(id,oi){
-  var sv=survData.find(function(s){ return s.id===id; }); if(!sv||sv.done) return;
+  var sv=survData.find(function(s){ return s.id===id||parseInt(s.id)===id; }); if(!sv||sv.done) return;
+  if(sv.opts && !Array.isArray(sv.opts)) sv.opts=Object.values(sv.opts);
   sv.opts[oi].votes++; sv.total++; sv.done=true;
   var max=sv.total;
   sv.opts.forEach(function(o,i){ var el=document.getElementById("pf"+id+"i"+i); if(el) el.style.width=Math.round(o.votes/max*100)+"%"; });
@@ -783,12 +836,14 @@ function updateFileNotice(){
   if(!myFiles.length){ card.style.display="none"; return; }
   card.style.display="block"; notice.innerHTML="";
   myFiles.forEach(function(f){
-    var el=document.createElement("div"); el.style.cssText="padding:8px 0;border-bottom:0.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center";
+    var el=document.createElement("div"); el.style.cssText="padding:8px 0;border-bottom:0.5px solid var(--bd);display:flex;justify-content:space-between;align-items:center;gap:6px";
     var size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+"MB":(f.size/1024).toFixed(0)+"KB";
-    el.innerHTML="<div><div style='font-size:14px;font-weight:600'>📎 "+f.name+"</div><div style='font-size:11px;color:var(--sub)'>"+f.from+"さんから ・ "+size+"</div></div>";
-    var dlBtn=document.createElement("button"); dlBtn.textContent="⬇"; dlBtn.style.cssText="background:var(--navy);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px";
+    el.innerHTML="<div style='flex:1'><div style='font-size:14px;font-weight:600'>📎 "+f.name+"</div><div style='font-size:11px;color:var(--sub)'>"+f.from+"さんから ・ "+size+"</div></div>";
+    var dlBtn=document.createElement("button"); dlBtn.textContent="⬇"; dlBtn.style.cssText="background:var(--navy);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;flex-shrink:0";
     dlBtn.onclick=(function(data,name){ return function(){ var a=document.createElement("a"); a.href=data; a.download=name; a.click(); }; })(f.data,f.name);
-    el.appendChild(dlBtn); notice.appendChild(el);
+    var delBtn=document.createElement("button"); delBtn.textContent="✕"; delBtn.style.cssText="background:#fef0f0;border:1px solid #f8caca;border-radius:6px;color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;padding:4px 8px";
+    delBtn.onclick=(function(id){ return function(){ delFile(id); }; })(f.id);
+    el.appendChild(dlBtn); el.appendChild(delBtn); notice.appendChild(el);
   });
 }
 
@@ -839,6 +894,38 @@ function updateDots(){
   document.getElementById("unreadCnt").textContent=newCount;
 }
 
+function clearAllData(){
+  if(!confirm("全データを削除しますか？\nこの操作は元に戻せません。")) return;
+  schedData={}; boardData=[]; survData=[]; fileData=[];
+  if(db){
+    db.ref("schedData").remove();
+    db.ref("boardData").remove();
+    db.ref("survData").remove();
+    db.ref("fileData").remove();
+  }
+  renderAll();
+  showToast("全データを削除しました");
+}
+function clearInitData(){
+  if(!confirm("サンプルデータを削除しますか？\n（自分が追加したデータも消えます）")) return;
+  schedData={};
+  boardData=boardData.filter(function(b){ return parseInt(b.id) > 1000000000000; });
+  survData=survData.filter(function(s){ return parseInt(s.id) > 1000000000000; });
+  fileData=fileData.filter(function(f){ return parseInt(f.id) > 1000000000000; });
+  if(db){
+    db.ref("schedData").set(null);
+    db.ref("boardData").set(boardData.length>0 ? boardData : null);
+    db.ref("survData").set(survData.length>0 ? survData : null);
+    db.ref("fileData").set(fileData.length>0 ? fileData : null);
+  }
+  try{
+    localStorage.removeItem("sched2");
+    localStorage.removeItem("board2");
+    localStorage.removeItem("surv2");
+  }catch(e){}
+  renderAll();
+  showToast("サンプルデータを削除しました");
+}
 function renderAll(){
   renderCal(); renderBoard(); renderHomeBoard(); renderSurveys(); renderStaff(staff); renderTodaySlots(); renderFiles();
   updateDots(); updateFileNotice();
