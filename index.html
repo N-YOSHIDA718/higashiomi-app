@@ -540,22 +540,6 @@ function submitModal(){
     else { hUser.dept=document.getElementById("fhdept").value||hUser.dept; }
     hUser.ini=document.getElementById("fhini").value||hUser.ini;
     applyUser(); saveUser(); showToast(t("updated"));
-  } else if(modalMode==="editsched"){
-    var ds=document.getElementById("feschedds").value;
-    var id=parseInt(document.getElementById("feschedid").value);
-    var ti=document.getElementById("fetitle").value.trim();
-    var st=document.getElementById("festart").value;
-    var en=document.getElementById("feend").value;
-    var mb=document.getElementById("femember").value;
-    if(!ti){ showToast(t("needContent")); return; }
-    if(st>=en){ showToast(t("timeErr")); return; }
-    var data=schedData[ds]||[];
-    var s=data.find(function(x){ return x.id===id; });
-    if(s){ s.st=st; s.et=en; s.title=ti; s.member=mb; }
-    data.sort(function(a,b){ return a.st>b.st?1:-1; });
-    saveData();
-    if(!dbReady){ renderDayDetail(ds); renderCal(); renderTodaySlots(); }
-    showToast(t("updated"));
   } else if(modalMode==="sched"){
     var d=document.getElementById("fdate").value;
     var ti=document.getElementById("ftitle").value.trim();
@@ -694,25 +678,6 @@ function renderCal(){
 }
 function chMonth(dir){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} renderCal(); }
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
-function openEditSched(ds, id){
-  var data=schedData[ds]||[];
-  var s=data.find(function(x){ return x.id===id; }); if(!s) return;
-  modalMode="editsched";
-  document.getElementById("modalTitle").textContent="✏️ 予定を編集";
-  document.getElementById("modalBody").innerHTML=
-    "<input type='hidden' id='feschedds' value='"+ds+"'>"+
-    "<input type='hidden' id='feschedid' value='"+id+"'>"+
-    "<div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='festart'>"+timeOpts(s.st)+"</select></div>"+
-    "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='feend'>"+timeOpts(s.et||"10:00")+"</select></div>"+
-    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='fetitle' value='"+s.title+"'></div>"+
-    "<div class='fg'><label class='fl'>"+t("memberLbl")+"</label><select class='fi' id='femember'>"+staffOpts()+"</select></div>";
-  // 担当者を選択状態に
-  setTimeout(function(){
-    var sel=document.getElementById("femember");
-    if(sel && s.member){ sel.value=s.member; }
-  },50);
-  document.getElementById("modal").classList.add("on");
-}
 function renderDayDetail(ds){
   var parts=ds.split("-");
   var dow=dayNames[lang][new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])).getDay()];
@@ -726,15 +691,10 @@ function renderDayDetail(ds){
     var row=document.createElement("div"); row.className="tw";
     var timeStr=s.st+(s.et?" ～ "+s.et:"");
     var mid=s.member?"<div style='font-size:12px;color:var(--sub);margin-top:3px'>👤 "+s.member+"</div>":"";
-    var delBtn=document.createElement("button"); delBtn.className="db"; delBtn.textContent="✕";
-    delBtn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
-    var editBtn=document.createElement("button"); editBtn.className="db"; editBtn.textContent="✏️";
-    editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1";
-    editBtn.onclick=(function(ds2,id){ return function(){ openEditSched(ds2,id); }; })(ds,s.id);
+    var btn=document.createElement("button"); btn.className="db"; btn.textContent="✕";
+    btn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
     row.innerHTML="<div class='tt'>"+timeStr+"</div><div class='tb'><div class='tc'><div style='font-weight:600;font-size:15px'>"+s.title+"</div>"+mid+"</div></div>";
-    var tb=row.querySelector(".tb");
-    tb.appendChild(editBtn);
-    tb.appendChild(delBtn);
+    row.querySelector(".tb").appendChild(btn);
     slots.appendChild(row);
   });
 }
