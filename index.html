@@ -9,7 +9,6 @@
 <meta name="apple-mobile-web-app-title" content="東近江製作所">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <!-- PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -895,12 +894,23 @@ function translateText(original, text){
   showTransModal(original, text);
 }
 function openPdfModal(data, name){
+  // BlobURLに変換してそのまま開く
+  try{
+    var arr = data.split(",");
+    var bstr = atob(arr[1]);
+    var n = bstr.length;
+    var u8 = new Uint8Array(n);
+    while(n--){ u8[n] = bstr.charCodeAt(n); }
+    var blob = new Blob([u8], {type:"application/pdf"});
+    var blobUrl = URL.createObjectURL(blob);
+    window.location.href = blobUrl;
+    return;
+  } catch(e){}
+  // フォールバック: モーダル表示
   document.getElementById("pdfModalTitle").textContent = name;
   document.getElementById("pdfModal").classList.add("on");
   var container = document.getElementById("pdfContainer");
   container.innerHTML = "<div style='color:#fff;padding:20px;text-align:center'>📄 読み込み中...</div>";
-  
-  // 保存ボタン
   document.getElementById("pdfDlBtn").onclick = function(){
     var a = document.createElement("a");
     a.href = data; a.download = name;
@@ -908,51 +918,17 @@ function openPdfModal(data, name){
   };
 
   try{
-    // Base64→Uint8Array変換
-    var base64 = data.split(",")[1];
-    var binary = atob(base64);
-    var bytes = new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-    
-    // PDF.jsで全ページをcanvasに描画
-    if(typeof pdfjsLib !== "undefined"){
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
-        container.innerHTML = "";
-        var total = pdf.numPages;
-        // ページカウンター表示
-        var counter = document.createElement("div");
-        counter.style.cssText = "color:#fff;font-size:12px;margin-bottom:6px;text-align:center";
-        counter.textContent = "全"+total+"ページ";
-        container.appendChild(counter);
-        // 全ページを順番にレンダリング
-        var renderPage = function(num){
-          pdf.getPage(num).then(function(page){
-            var scale = Math.min((window.innerWidth*0.9), 540) / page.getViewport({scale:1}).width;
-            var vp = page.getViewport({scale: scale});
-            var wrap = document.createElement("div");
-            wrap.style.cssText = "position:relative";
-            var pageNum = document.createElement("div");
-            pageNum.style.cssText = "color:#ccc;font-size:11px;text-align:center;margin-bottom:3px";
-            pageNum.textContent = num + " / " + total;
-            var canvas = document.createElement("canvas");
-            canvas.width = vp.width; canvas.height = vp.height;
-            canvas.style.cssText = "width:100%;display:block;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.5)";
-            wrap.appendChild(pageNum);
-            wrap.appendChild(canvas);
-            container.appendChild(wrap);
-            page.render({canvasContext: canvas.getContext("2d"), viewport: vp}).promise.then(function(){
-              if(num < total) renderPage(num+1);
-            });
-          });
-        };
-        renderPage(1);
-      }).catch(function(e){
-        container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>読み込みエラー: "+e.message+"</div>";
-      });
-    } else {
-      container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>PDFビューアを読み込み中...<br>しばらくお待ちください</div>";
-    }
+    // Base64→BlobURL変換
+    var arr = data.split(",");
+    var mime = arr[0].match(/:(.*?);/)[1];
+    var bstr = atob(arr[1]);
+    var n = bstr.length;
+    var u8 = new Uint8Array(n);
+    while(n--){ u8[n] = bstr.charCodeAt(n); }
+    var blob = new Blob([u8], {type: "application/pdf"});
+    var blobUrl = URL.createObjectURL(blob);
+    // 同じタブで開く（iPhoneで最も確実）
+    window.location.href = blobUrl;
   } catch(e){
     container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>エラー: "+e.message+"</div>";
   }
