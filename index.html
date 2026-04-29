@@ -134,6 +134,9 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 
 <div class="pg on" id="pg-home">
   <div class="sync-bar" id="syncBar">🔄 全員のデータと同期中...</div>
+  <div style="text-align:right;margin-bottom:8px">
+    <button onclick="reloadAll()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit">🔄 最新情報に更新</button>
+  </div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
       <div id="hav" class="av" style="width:50px;height:50px;background:var(--navy);font-size:16px;flex-shrink:0">近</div>
@@ -372,6 +375,7 @@ function pad(n){ return String(n).padStart(2,"0"); }
 
 // ===== グローバル =====
 var lang="ja", curPg="home", calY=2026, calM=4, selDate=null, modalMode="", schedIdCounter=100, schedFilter="all";
+var ADMIN_NAME="吉田 尚未"; // 管理者名
 var todayD=new Date();
 var todayStr=todayD.getFullYear()+"-"+pad(todayD.getMonth()+1)+"-"+pad(todayD.getDate());
 
@@ -1306,6 +1310,10 @@ function clearInitData(){
   }catch(e){}
   renderAll();
   showToast("サンプルデータを削除しました。自分が追加したデータも消えました");
+}
+function reloadAll(){
+  renderAll();
+  showToast("🔄 更新しました");
 }
 function renderAll(){
   renderCal(); renderBoard(); renderHomeBoard(); renderSurveys(); renderStaff(staff); renderTodaySlots(); renderFiles();
