@@ -863,47 +863,38 @@ function openPdfModal(data, name){
   document.getElementById("pdfModal").classList.add("on");
   var container = document.getElementById("pdfContainer");
   container.innerHTML = "<div style='color:#fff;padding:20px;text-align:center'>📄 読み込み中...</div>";
+  
   // 保存ボタン
-  var dlBtn = document.getElementById("pdfDlBtn");
-  dlBtn.onclick = function(){
+  document.getElementById("pdfDlBtn").onclick = function(){
     var a = document.createElement("a");
     a.href = data; a.download = name;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
-  // PDF.jsで全ページ表示
-  var loadPdf = function(){
-    if(typeof pdfjsLib === "undefined"){
-      // PDF.js未ロードの場合はiframeで表示
-      container.innerHTML = "<iframe src='"+data+"' style='width:100%;height:100%;border:none;background:#fff'></iframe>";
-      return;
-    }
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-    // data URIをUint8Arrayに変換してPDF.jsに渡す
-    var base64 = data.split(",")[1];
-    var binary = atob(base64);
-    var bytes = new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-    pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
-      container.innerHTML = "";
-      var totalPages = pdf.numPages;
-      var renderPage = function(pageNum){
-        pdf.getPage(pageNum).then(function(page){
-          var viewport = page.getViewport({scale: Math.min(window.innerWidth*0.88, 560) / page.getViewport({scale:1}).width});
-          var canvas = document.createElement("canvas");
-          canvas.width = viewport.width; canvas.height = viewport.height;
-          canvas.style.cssText = "border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.4);width:100%;max-width:100%";
-          container.appendChild(canvas);
-          page.render({canvasContext:canvas.getContext("2d"), viewport:viewport}).promise.then(function(){
-            if(pageNum < totalPages) renderPage(pageNum+1);
-          });
-        });
-      };
-      renderPage(1);
-    }).catch(function(e){
-      container.innerHTML = "<div style='color:#fff;padding:20px;text-align:center'>PDF読み込みエラー<br><small>"+e.message+"</small></div>";
-    });
-  };
-  loadPdf();
+
+  // Base64をBlobURLに変換してobjectタグで表示（Safari対応）
+  try{
+    var arr = data.split(",");
+    var mime = arr[0].match(/:(.*?);/)[1];
+    var bstr = atob(arr[1]);
+    var n = bstr.length;
+    var u8 = new Uint8Array(n);
+    while(n--){ u8[n] = bstr.charCodeAt(n); }
+    var blob = new Blob([u8], {type: mime});
+    var blobUrl = URL.createObjectURL(blob);
+    
+    container.innerHTML = "";
+    var obj = document.createElement("object");
+    obj.data = blobUrl;
+    obj.type = "application/pdf";
+    obj.style.cssText = "width:100%;height:100%;border:none;background:#fff";
+    // Safariでobjectが動かない場合のフォールバック
+    obj.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>" +
+      "<p style='margin-bottom:12px'>📄 PDFビューアが表示できません</p>" +
+      "<a href='"+blobUrl+"' target='_blank' style='background:#1a3a7a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px'>Safariで開く</a></div>";
+    container.appendChild(obj);
+  } catch(e){
+    container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>エラー: "+e.message+"</div>";
+  }
 }
 function closePdfModal(){
   document.getElementById("pdfModal").classList.remove("on");
@@ -978,7 +969,7 @@ function renderDayDetail(ds){
     editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1";
     editBtn.onclick=(function(ds2,id){ return function(){ openEditSched(ds2,id); }; })(ds,s.id);
     var transBtn2=document.createElement("button"); transBtn2.textContent="🌐"; transBtn2.title="翻訳";
-    transBtn2.style.cssText="background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0";
+    transBtn2.style.cssText="background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px;flex-shrink:0";
     transBtn2.onclick=(function(title,member){ return function(){
       translateText(title+(member?" 担当: "+member:""), function(tr){ showToast("🌐 "+tr); });
     }; })(s.title, s.member);
@@ -1003,7 +994,7 @@ function renderBoard(){
     editBtn.onclick=(function(id){ return function(){ openEditBoard(id); }; })(b.id);
     var transBtn=document.createElement("button"); transBtn.className="bedit"; transBtn.textContent="🌐";
     transBtn.title="ベトナム語に翻訳";
-    transBtn.style.cssText="position:absolute;top:8px;right:52px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer";
+    transBtn.style.cssText="position:absolute;top:8px;right:52px;background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px";
     transBtn.onclick=(function(bid){ return function(){
       var bitem=boardData.find(function(x){ return x.id===bid||parseInt(x.id)===bid; });
       if(!bitem) return;
@@ -1036,7 +1027,17 @@ function renderSurveys(){
     var el=document.createElement("div"); el.className="si";
     var max=sv.total||1;
     var dlEl=sv.deadline?t("deadline")+": "+sv.deadline+" ・ ":"";
-    el.innerHTML="<div style='font-size:16px;font-weight:700;margin-bottom:7px;padding-right:24px'>"+sv.title+"</div><div style='font-size:13px;color:var(--sub);margin-bottom:11px'>"+dlEl+t("answers")+": "+sv.total+t("persons")+"</div>";
+    var survTransBtn=document.createElement("button");
+    survTransBtn.textContent="🌐"; survTransBtn.title="ベトナム語に翻訳";
+    survTransBtn.style.cssText="position:absolute;top:10px;right:36px;background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px";
+    survTransBtn.onclick=(function(svid){ return function(){
+      var sv2=survData.find(function(x){ return x.id===svid||parseInt(x.id)===svid; }); if(!sv2) return;
+      var opts2=sv2.opts?(Array.isArray(sv2.opts)?sv2.opts:Object.values(sv2.opts)):[];
+      var text=sv2.title+" "+opts2.map(function(o){ return o.text; }).join(" / ");
+      translateText(text, function(tr){ showToast("🌐 "+tr); });
+    }; })(sv.id);
+    el.innerHTML="<div style='font-size:16px;font-weight:700;margin-bottom:7px;padding-right:64px'>"+sv.title+"</div><div style='font-size:13px;color:var(--sub);margin-bottom:11px'>"+dlEl+t("answers")+": "+sv.total+t("persons")+"</div>";
+    el.appendChild(survTransBtn);
     sv.opts.forEach(function(o,i){
       var pct=Math.round(o.votes/max*100);
       var row=document.createElement("div"); row.className="or";
