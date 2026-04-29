@@ -1039,28 +1039,57 @@ function renderDayDetail(ds){
 
 function renderBoard(){
   var list=document.getElementById("boardList"); list.innerHTML="";
-  if(!boardData.length){ list.innerHTML="<div style='text-align:center;padding:20px;color:var(--sub)'>"+t("noBoard")+"</div>"; return; }
-  boardData.forEach(function(b){
-    var el=document.createElement("div"); el.className="bi"+(b.isNew?" ni2":"");
-    var nb=b.isNew?"<span class='bb'>"+t("newBadge")+"</span>":"";
-    var delBtn=document.createElement("button"); delBtn.className="bd2x"; delBtn.textContent="✕";
-    delBtn.onclick=(function(id){ return function(){ delBoard(id); }; })(b.id);
+  var visible=boardData.filter(function(b){
+    if(hUser.name===ADMIN_NAME) return true;
+    var db=b.deletedBy||[];
+    if(!Array.isArray(db)) db=Object.values(db);
+    return db.indexOf(hUser.name)<0;
+  });
+  if(!visible.length){ list.innerHTML="<div style='text-align:center;padding:20px;color:var(--sub)'>"+t("noBoard")+"</div>"; return; }
+  visible.forEach(function(b){
+    var readBy=b.readBy||[];
+    if(!Array.isArray(readBy)) readBy=Object.values(readBy);
+    var isUnread=readBy.indexOf(hUser.name)<0;
+    var el=document.createElement("div"); el.className="bi"+(isUnread?" ni2":"");
+    // ✅ 既読ボタン
+    var readBtn=document.createElement("button");
+    readBtn.textContent=isUnread?"✅":"☑️";
+    readBtn.title=isUnread?"既読にする":"既読済み";
+    readBtn.style.cssText="position:absolute;top:6px;right:78px;background:#e8f5ee;border:1.5px solid #2a7a4a;border-radius:6px;color:#2a7a4a;font-size:13px;cursor:pointer;padding:3px 7px;font-weight:700";
+    readBtn.onclick=(function(id){ return function(){ markRead(id); }; })(b.id);
+    // ✏️ 編集ボタン
     var editBtn=document.createElement("button"); editBtn.className="bedit"; editBtn.textContent="✏️";
+    editBtn.style.cssText="position:absolute;top:8px;right:30px;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;line-height:1";
     editBtn.onclick=(function(id){ return function(){ openEditBoard(id); }; })(b.id);
-    var transBtn=document.createElement("button"); transBtn.className="bedit"; transBtn.textContent="🌐";
-    transBtn.title="ベトナム語に翻訳";
+    // 🌐 翻訳ボタン
+    var transBtn=document.createElement("button"); transBtn.textContent="🌐";
     transBtn.style.cssText="position:absolute;top:8px;right:52px;background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px";
     transBtn.onclick=(function(bid){ return function(){
       var bitem=boardData.find(function(x){ return x.id===bid||parseInt(x.id)===bid; });
       if(!bitem) return;
       translateText(bitem.title+"。\n"+bitem.body, bitem.title+"。\n"+bitem.body);
     }; })(b.id);
-    el.innerHTML="<div style='font-weight:600;font-size:15px;padding-right:52px'>"+b.title+nb+"</div><div style='font-size:14px;color:#444;margin-top:4px'>"+b.body+"</div><div class='ba'>"+b.author+" ・ "+b.time+"</div>";
-    el.appendChild(transBtn);
-    el.appendChild(editBtn); el.appendChild(delBtn);
+    // ✕ 削除ボタン
+    var delBtn=document.createElement("button"); delBtn.className="bd2x"; delBtn.textContent="✕";
+    delBtn.onclick=(function(id){ return function(){ delBoard(id); }; })(b.id);
+    var nb=isUnread?"<span class='bb'>"+t("newBadge")+"</span>":"";
+    // ✅既読ボタンを下部に配置、他のボタンを右上に
+    var topBtns=document.createElement("div");
+    topBtns.style.cssText="position:absolute;top:8px;right:8px;display:flex;gap:4px;align-items:center";
+    transBtn.style.cssText="background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:3px 5px";
+    editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:15px;cursor:pointer;padding:0 2px;line-height:1";
+    delBtn.style.cssText="background:none;border:none;color:#ccc;font-size:17px;cursor:pointer;padding:0 2px;line-height:1";
+    topBtns.appendChild(transBtn); topBtns.appendChild(editBtn); topBtns.appendChild(delBtn);
+    // ✅ボタンは本文下に配置
+    readBtn.style.cssText="background:"+(isUnread?"#e8f5ee":"#f5f5f5")+";border:1.5px solid "+(isUnread?"#2a7a4a":"#ccc")+";border-radius:6px;color:"+(isUnread?"#2a7a4a":"#999")+";font-size:12px;cursor:pointer;padding:4px 10px;margin-top:6px;font-family:inherit";
+    readBtn.textContent=isUnread?"✅ 既読にする":"☑ 既読済み";
+    el.innerHTML="<div style='font-weight:600;font-size:15px;margin-bottom:2px'>"+b.title+nb+"</div><div style='font-size:14px;color:#444;margin-top:2px;line-height:1.6'>"+b.body+"</div><div class='ba' style='margin-top:4px'>"+b.author+" ・ "+b.time+"</div>";
+    el.appendChild(topBtns);
+    el.appendChild(readBtn);
     list.appendChild(el);
   });
 }
+
 function renderHomeBoard(){
   var c=document.getElementById("homeBoard"); c.innerHTML="";
   if(!boardData.length){ c.innerHTML="<div style='color:var(--sub);font-size:13px;text-align:center;padding:8px'>"+t("noBoard")+"</div>"; return; }
