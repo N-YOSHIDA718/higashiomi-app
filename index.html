@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="東近江製作所">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -243,12 +245,13 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
   </div>
 </div>
 <div class="mbg" id="pdfModal" style="z-index:500">
-  <div style="background:#fff;border-radius:16px;width:96%;height:90vh;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0">
-      <div style="font-size:15px;font-weight:700;color:#1a3a7a" id="pdfModalTitle">PDF</div>
-      <button onclick="closePdfModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666">✕</button>
+  <div style="background:#fff;border-radius:16px;width:96%;height:92vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;gap:8px">
+      <div style="font-size:14px;font-weight:700;color:#1a3a7a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="pdfModalTitle">PDF</div>
+      <button id="pdfDlBtn" style="background:var(--navy);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;flex-shrink:0">⬇ 保存</button>
+      <button onclick="closePdfModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;flex-shrink:0">✕</button>
     </div>
-    <iframe id="pdfFrame" style="flex:1;width:100%;border:none" src="about:blank"></iframe>
+    <div id="pdfContainer" style="flex:1;overflow-y:auto;background:#525659;display:flex;flex-direction:column;align-items:center;padding:10px;gap:10px"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -436,7 +439,28 @@ var LNG={
     fileTab:"📎 Chia sẻ file",addFile:"＋ Đính kèm",noFile:"Không có file",
     fileTo:"Gửi đến",fileNote:"Ghi chú",fileBtn:"Chọn file",
     unread:"Tin chưa đọc",today:"Lịch hôm nay",staffCount:"Nhân viên",
-    syncing:"Đang đồng bộ...",synced:"✅ Đã chia sẻ với mọi người"}
+    syncing:"Đang đồng bộ...",synced:"✅ Đã chia sẻ với mọi người",
+    addFile:"＋ Đính kèm file",noFile:"Không có file",
+    fileTo:"Gửi đến",fileNote:"Ghi chú",fileBtn:"Chọn file PDF",
+    plContent:"Nội dung lịch...",plSelect:"-- Chọn --",plAll:"Tất cả nhân viên",
+    timeErr:"Giờ kết thúc phải sau giờ bắt đầu",
+    needContent:"Vui lòng nhập nội dung",needTitle:"Vui lòng nhập tiêu đề",
+    added:"Đã thêm lịch",posted:"Đã đăng",created:"Đã tạo khảo sát",
+    voted:"Đã bỏ phiếu",deleted:"Đã xóa",updated:"Đã cập nhật",
+    addSchedT:"📅 Thêm lịch",addBoardT:"📋 Đăng tin",addSurvT:"📊 Tạo khảo sát",
+    editT:"✏️ Chỉnh sửa thông tin",
+    dateLbl:"Ngày",startLbl:"Giờ bắt đầu",endLbl:"Giờ kết thúc",
+    contentLbl:"Nội dung",memberLbl:"Người phụ trách",
+    titleLbl:"Tiêu đề",bodyLbl:"Nội dung",deadlineLbl:"Hạn chót",
+    opt1:"Lựa chọn 1",opt2:"Lựa chọn 2",
+    staffSelLbl:"Chọn nhân viên",deptLbl:"Bộ phận",iniLbl:"Chữ viết tắt (1-2 ký tự)",
+    delSched:"Xóa lịch này?",delBoard:"Xóa tin này?",delSurv:"Xóa khảo sát này?",
+    votes:"phiếu",persons:"người",answers:"Số câu trả lời",deadline:"Hạn",
+    newBadge:"Mới",noBoard:"Không có tin nhắn",noSurvey:"Không có khảo sát",
+    noToday:"Không có lịch hôm nay",noSched:"Không có lịch ngày này",
+    workCnt:"Tháng làm: ",offCnt:" ngày / Nghỉ: ",dayu:" ngày",
+    calHint:"Nhấn vào ngày trên lịch<br>để xem lịch theo giờ",
+    cancel:"Hủy bỏ"}
 };
 function t(k){ return (LNG[lang]&&LNG[lang][k])||k; }
 
@@ -822,14 +846,49 @@ function delFile(id){
 
 function openPdfModal(data, name){
   document.getElementById("pdfModalTitle").textContent = name;
-  var frame = document.getElementById("pdfFrame");
-  // iframeにdata URIをセット（Safari対応）
-  frame.src = data;
   document.getElementById("pdfModal").classList.add("on");
+  var container = document.getElementById("pdfContainer");
+  container.innerHTML = "<div style='color:#fff;padding:20px;text-align:center'>📄 読み込み中...</div>";
+  // 保存ボタン
+  var dlBtn = document.getElementById("pdfDlBtn");
+  dlBtn.onclick = function(){
+    var a = document.createElement("a");
+    a.href = data; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+  // PDF.jsで全ページ表示
+  var loadPdf = function(){
+    if(typeof pdfjsLib === "undefined"){
+      // PDF.js未ロードの場合はiframeで表示
+      container.innerHTML = "<iframe src='"+data+"' style='width:100%;height:100%;border:none;background:#fff'></iframe>";
+      return;
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    pdfjsLib.getDocument(data).promise.then(function(pdf){
+      container.innerHTML = "";
+      var totalPages = pdf.numPages;
+      var renderPage = function(pageNum){
+        pdf.getPage(pageNum).then(function(page){
+          var viewport = page.getViewport({scale: Math.min(window.innerWidth*0.88, 560) / page.getViewport({scale:1}).width});
+          var canvas = document.createElement("canvas");
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          canvas.style.cssText = "border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.4);width:100%;max-width:100%";
+          container.appendChild(canvas);
+          page.render({canvasContext:canvas.getContext("2d"), viewport:viewport}).promise.then(function(){
+            if(pageNum < totalPages) renderPage(pageNum+1);
+          });
+        });
+      };
+      renderPage(1);
+    }).catch(function(e){
+      container.innerHTML = "<div style='color:#fff;padding:20px;text-align:center'>PDF読み込みエラー<br><small>"+e.message+"</small></div>";
+    });
+  };
+  loadPdf();
 }
 function closePdfModal(){
   document.getElementById("pdfModal").classList.remove("on");
-  document.getElementById("pdfFrame").src = "about:blank";
+  document.getElementById("pdfContainer").innerHTML = "";
 }
 function showToast(msg){ var el=document.getElementById("toast"); el.textContent=msg; el.style.display="block"; setTimeout(function(){ el.style.display="none"; },2500); }
 
