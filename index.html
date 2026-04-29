@@ -255,6 +255,18 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="mbg" id="transModal" style="z-index:600">
+  <div style="background:#fff;border-radius:16px;width:93%;max-width:440px;padding:20px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:16px;font-weight:700;color:var(--navy)">🌐 ベトナム語翻訳</div>
+      <button onclick="closeTransModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:8px">【原文】</div>
+    <div id="transOriginal" style="font-size:14px;color:#333;background:#f5f5f5;border-radius:8px;padding:10px;margin-bottom:12px;line-height:1.7;white-space:pre-wrap"></div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:8px">【ベトナム語】</div>
+    <div id="transResult" style="font-size:15px;color:#1a3a7a;background:#e8f0fb;border-radius:8px;padding:10px;line-height:1.7;white-space:pre-wrap">翻訳中...</div>
+  </div>
+</div>
 <script>
 // ===== Firebase初期化 =====
 var db = null;
@@ -844,19 +856,43 @@ function delFile(id){
   showToast(t("deleted"));
 }
 
-function translateText(text, callback){
-  // MyMemory無料翻訳API（キー不要）
-  var url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair=ja|vi";
-  fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d.responseStatus===200){
-        callback(d.responseData.translatedText);
-      } else {
-        showToast("翻訳できませんでした");
-      }
-    })
-    .catch(function(){ showToast("翻訳サービスに接続できませんでした"); });
+function closeTransModal(){
+  document.getElementById("transModal").classList.remove("on");
+}
+function showTransModal(original, text){
+  document.getElementById("transOriginal").textContent = original;
+  document.getElementById("transResult").textContent = "翻訳中...";
+  document.getElementById("transModal").classList.add("on");
+  // 長い文章は複数回に分けて翻訳
+  var chunks = [];
+  var maxLen = 400;
+  for(var i=0; i<text.length; i+=maxLen){
+    chunks.push(text.slice(i, i+maxLen));
+  }
+  var results = new Array(chunks.length);
+  var done = 0;
+  chunks.forEach(function(chunk, idx){
+    var url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(chunk)+"&langpair=ja|vi";
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        results[idx] = d.responseStatus===200 ? d.responseData.translatedText : chunk;
+        done++;
+        if(done===chunks.length){
+          document.getElementById("transResult").textContent = results.join(" ");
+        }
+      })
+      .catch(function(){
+        results[idx] = chunk;
+        done++;
+        if(done===chunks.length){
+          document.getElementById("transResult").textContent = results.join(" ");
+        }
+      });
+  });
+}
+function translateText(original, text){
+  showTransModal(original, text);
 }
 function openPdfModal(data, name){
   document.getElementById("pdfModalTitle").textContent = name;
@@ -871,27 +907,52 @@ function openPdfModal(data, name){
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
-  // Base64をBlobURLに変換してobjectタグで表示（Safari対応）
   try{
-    var arr = data.split(",");
-    var mime = arr[0].match(/:(.*?);/)[1];
-    var bstr = atob(arr[1]);
-    var n = bstr.length;
-    var u8 = new Uint8Array(n);
-    while(n--){ u8[n] = bstr.charCodeAt(n); }
-    var blob = new Blob([u8], {type: mime});
-    var blobUrl = URL.createObjectURL(blob);
+    // Base64→Uint8Array変換
+    var base64 = data.split(",")[1];
+    var binary = atob(base64);
+    var bytes = new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
     
-    container.innerHTML = "";
-    var obj = document.createElement("object");
-    obj.data = blobUrl;
-    obj.type = "application/pdf";
-    obj.style.cssText = "width:100%;height:100%;border:none;background:#fff";
-    // Safariでobjectが動かない場合のフォールバック
-    obj.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>" +
-      "<p style='margin-bottom:12px'>📄 PDFビューアが表示できません</p>" +
-      "<a href='"+blobUrl+"' target='_blank' style='background:#1a3a7a;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px'>Safariで開く</a></div>";
-    container.appendChild(obj);
+    // PDF.jsで全ページをcanvasに描画
+    if(typeof pdfjsLib !== "undefined"){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
+        container.innerHTML = "";
+        var total = pdf.numPages;
+        // ページカウンター表示
+        var counter = document.createElement("div");
+        counter.style.cssText = "color:#fff;font-size:12px;margin-bottom:6px;text-align:center";
+        counter.textContent = "全"+total+"ページ";
+        container.appendChild(counter);
+        // 全ページを順番にレンダリング
+        var renderPage = function(num){
+          pdf.getPage(num).then(function(page){
+            var scale = Math.min((window.innerWidth*0.9), 540) / page.getViewport({scale:1}).width;
+            var vp = page.getViewport({scale: scale});
+            var wrap = document.createElement("div");
+            wrap.style.cssText = "position:relative";
+            var pageNum = document.createElement("div");
+            pageNum.style.cssText = "color:#ccc;font-size:11px;text-align:center;margin-bottom:3px";
+            pageNum.textContent = num + " / " + total;
+            var canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            canvas.style.cssText = "width:100%;display:block;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.5)";
+            wrap.appendChild(pageNum);
+            wrap.appendChild(canvas);
+            container.appendChild(wrap);
+            page.render({canvasContext: canvas.getContext("2d"), viewport: vp}).promise.then(function(){
+              if(num < total) renderPage(num+1);
+            });
+          });
+        };
+        renderPage(1);
+      }).catch(function(e){
+        container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>読み込みエラー: "+e.message+"</div>";
+      });
+    } else {
+      container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>PDFビューアを読み込み中...<br>しばらくお待ちください</div>";
+    }
   } catch(e){
     container.innerHTML = "<div style='padding:20px;text-align:center;color:#fff'>エラー: "+e.message+"</div>";
   }
@@ -971,7 +1032,8 @@ function renderDayDetail(ds){
     var transBtn2=document.createElement("button"); transBtn2.textContent="🌐"; transBtn2.title="翻訳";
     transBtn2.style.cssText="background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px;flex-shrink:0";
     transBtn2.onclick=(function(title,member){ return function(){
-      translateText(title+(member?" 担当: "+member:""), function(tr){ showToast("🌐 "+tr); });
+      var orig=title+(member?" 担当: "+member:"");
+      translateText(orig, orig);
     }; })(s.title, s.member);
     row.innerHTML="<div class='tt'>"+timeStr+"</div><div class='tb'><div class='tc'><div style='font-weight:600;font-size:15px'>"+s.title+"</div>"+mid+"</div></div>";
     var tb=row.querySelector(".tb");
@@ -998,9 +1060,7 @@ function renderBoard(){
     transBtn.onclick=(function(bid){ return function(){
       var bitem=boardData.find(function(x){ return x.id===bid||parseInt(x.id)===bid; });
       if(!bitem) return;
-      translateText(bitem.title+"。"+bitem.body, function(translated){
-        showToast("🌐 "+translated.slice(0,60)+(translated.length>60?"...":""));
-      });
+      translateText(bitem.title+"。\n"+bitem.body, bitem.title+"。\n"+bitem.body);
     }; })(b.id);
     el.innerHTML="<div style='font-weight:600;font-size:15px;padding-right:52px'>"+b.title+nb+"</div><div style='font-size:14px;color:#444;margin-top:4px'>"+b.body+"</div><div class='ba'>"+b.author+" ・ "+b.time+"</div>";
     el.appendChild(transBtn);
@@ -1033,8 +1093,8 @@ function renderSurveys(){
     survTransBtn.onclick=(function(svid){ return function(){
       var sv2=survData.find(function(x){ return x.id===svid||parseInt(x.id)===svid; }); if(!sv2) return;
       var opts2=sv2.opts?(Array.isArray(sv2.opts)?sv2.opts:Object.values(sv2.opts)):[];
-      var text=sv2.title+" "+opts2.map(function(o){ return o.text; }).join(" / ");
-      translateText(text, function(tr){ showToast("🌐 "+tr); });
+      var orig=sv2.title+"\n選択肢: "+opts2.map(function(o){ return o.text; }).join(" / ");
+      translateText(orig, orig);
     }; })(sv.id);
     el.innerHTML="<div style='font-size:16px;font-weight:700;margin-bottom:7px;padding-right:64px'>"+sv.title+"</div><div style='font-size:13px;color:var(--sub);margin-bottom:11px'>"+dlEl+t("answers")+": "+sv.total+t("persons")+"</div>";
     el.appendChild(survTransBtn);
