@@ -582,14 +582,33 @@ function openAddSurvey(){
     "<div class='fg'><label class='fl'>"+t("opt2")+"</label><input class='fi' id='fs2'></div>"
   );
 }
+function onFileToTypeChange(){
+  var type=document.getElementById("ffiletype").value;
+  document.getElementById("ffiletoSingle").style.display=type==="single"?"block":"none";
+  document.getElementById("ffiletoGroup").style.display=type==="group"?"block":"none";
+  document.getElementById("ffiletoAll").style.display=type==="all"?"block":"none";
+}
 function openAddFile(){
   modalMode="file";
-  var toOpts="<option value=''>-- 宛先を選択 --</option>";
-  staff.forEach(function(s){ toOpts+="<option value='"+s.name+"'>"+s.name+"</option>"; });
+  var depts={};
+  staff.forEach(function(s){ depts[s.dept]=true; });
+  var deptOpts=Object.keys(depts).map(function(d){ return "<option value='dept:"+d+"'>🏢 "+d+"（全員）</option>"; }).join("");
+  var staffOpts2=staff.map(function(s){ return "<option value='"+s.name+"'>"+s.name+" ("+s.dept+")</option>"; }).join("");
   openModal(t("addFile"),
-    "<div class='fg'><label class='fl'>"+t("fileTo")+"</label><select class='fi' id='ffileto'>"+toOpts+"</select></div>"+
+    "<div class='fg'><label class='fl'>送り方</label>"+
+    "<select class='fi' id='ffiletype' onchange='onFileToTypeChange()'>"+
+    "<option value='single'>👤 個人に送る</option>"+
+    "<option value='group'>👥 複数人・部署に送る</option>"+
+    "<option value='all'>📢 全員に送る</option>"+
+    "</select></div>"+
+    "<div class='fg' id='ffiletoSingle'><label class='fl'>宛先（個人）</label>"+
+    "<select class='fi' id='ffileto'><option value=''>-- 選択 --</option>"+staffOpts2+"</select></div>"+
+    "<div class='fg' id='ffiletoGroup' style='display:none'><label class='fl'>宛先（複数選択・部署）</label>"+
+    "<select class='fi' id='ffileto2' multiple style='height:130px'>"+deptOpts+staffOpts2+"</select>"+
+    "<div style='font-size:11px;color:var(--sub);margin-top:3px'>※ Ctrlキー（スマホは長押し）で複数選択</div></div>"+
+    "<div class='fg' id='ffiletoAll' style='display:none'><div style='background:#fff3cd;border-radius:8px;padding:8px 12px;font-size:13px;color:#856404'>📢 全スタッフ（"+staff.length+"名）に送ります</div></div>"+
     "<div class='fg'><label class='fl'>📄 PDFファイルを選択（3MB以下）</label><input class='fi' type='file' id='ffile' accept='.pdf,application/pdf' style='padding:6px'></div>"+
-    "<div class='fg'><label class='fl'>"+t("fileNote")+"</label><input class='fi' id='ffilenote' placeholder='メモ（任意）'></div>"
+    "<div class='fg'><label class='fl'>メモ（任意）</label><input class='fi' id='ffilenote' placeholder='件名やメモを入力...'></div>"
   );
 }
 function openAddStaff(){
@@ -703,19 +722,46 @@ function submitModal(){
     if(!dbReady) renderStaff(staff);
     showToast("スタッフを追加しました");
   } else if(modalMode==="file"){
-    var toEl=document.getElementById("ffileto");
+    var typeEl=document.getElementById("ffiletype");
     var fileEl=document.getElementById("ffile");
     var note=document.getElementById("ffilenote").value.trim();
-    if(!toEl.value){ showToast("宛先を選択してください"); return; }
+    var sendType=typeEl?typeEl.value:"single";
     if(!fileEl.files||!fileEl.files[0]){ showToast("ファイルを選択してください"); return; }
     var file=fileEl.files[0];
     if(file.size>3*1024*1024){ showToast("3MB以下のPDFを選択してください"); return; }
+    // 宛先を決定
+    var toName="", toGroup=[];
+    if(sendType==="single"){
+      var toEl=document.getElementById("ffileto");
+      if(!toEl||!toEl.value){ showToast("宛先を選択してください"); return; }
+      toName=toEl.value;
+    } else if(sendType==="group"){
+      var sel=document.getElementById("ffileto2");
+      if(!sel){ showToast("宛先を選択してください"); return; }
+      var selected=Array.from(sel.selectedOptions).map(function(o){ return o.value; });
+      // 部署展開
+      selected.forEach(function(v){
+        if(v.indexOf("dept:")===0){
+          var dept=v.slice(5);
+          staff.filter(function(s){ return s.dept===dept; }).forEach(function(s){ if(toGroup.indexOf(s.name)<0) toGroup.push(s.name); });
+        } else {
+          if(toGroup.indexOf(v)<0) toGroup.push(v);
+        }
+      });
+      if(toGroup.length===0){ showToast("宛先を選択してください"); return; }
+      toName=toGroup[0];
+    } else if(sendType==="all"){
+      toGroup=staff.map(function(s){ return s.name; });
+      toName="全員";
+    }
     var reader=new FileReader();
     reader.onload=function(e){
-      fileData.unshift({id:Date.now(),to:toEl.value,from:hUser.name,name:file.name,size:file.size,data:e.target.result,note:note,time:"今"});
+      var entry={id:Date.now(),to:toName,toGroup:toGroup,from:hUser.name,name:file.name,size:file.size,data:e.target.result,note:note,time:"今"};
+      fileData.unshift(entry);
       saveFileData();
       if(!dbReady){ renderFiles(); updateFileNotice(); }
-      showToast("📎 "+toEl.value+"さんにファイルを送信しました");
+      var msg=sendType==="all"?"全員に送信しました":sendType==="group"?"グループ("+toGroup.length+"名)に送信しました":toName+"さんに送信しました";
+      showToast("📎 "+msg);
     };
     reader.readAsDataURL(file);
   }
@@ -899,8 +945,15 @@ function voteSurv(id,oi){
 
 function renderFiles(){
   var list=document.getElementById("fileList"); list.innerHTML="";
-  if(!fileData.length){ list.innerHTML="<div style='text-align:center;padding:20px;color:var(--sub)'>"+t("noFile")+"</div>"; return; }
-  fileData.forEach(function(f){
+  // 自分宛 or 自分が送った or グループ宛 のみ表示
+  var myFiles=fileData.filter(function(f){
+    if(f.from===hUser.name) return true; // 自分が送った
+    if(f.to===hUser.name) return true;   // 自分宛
+    if(f.toGroup && f.toGroup.indexOf(hUser.name)>=0) return true; // グループ宛
+    return false;
+  });
+  if(!myFiles.length){ list.innerHTML="<div style='text-align:center;padding:20px;color:var(--sub)'>"+t("noFile")+"</div>"; return; }
+  myFiles.forEach(function(f){
     var el=document.createElement("div"); el.className="fi-item";
     var size=f.size>1024*1024?(f.size/1024/1024).toFixed(1)+"MB":(f.size/1024).toFixed(0)+"KB";
     var isImg=f.data&&f.data.startsWith("data:image");
@@ -929,7 +982,11 @@ function renderFiles(){
   });
 }
 function updateFileNotice(){
-  var myFiles=fileData.filter(function(f){ return f.to===hUser.name; });
+  var myFiles=fileData.filter(function(f){
+    if(f.to===hUser.name) return true;
+    if(f.toGroup && f.toGroup.indexOf(hUser.name)>=0) return true;
+    return false;
+  });
   var card=document.getElementById("fileNoticeCard"), notice=document.getElementById("fileNotice");
   if(!myFiles.length){ card.style.display="none"; return; }
   card.style.display="block"; notice.innerHTML="";
