@@ -301,7 +301,14 @@ function listenAll(){
     if(!v){ fileData=[]; }
     else if(Array.isArray(v)) fileData = v;
     else fileData = Object.values(v).filter(function(x){ return x && x.id; });
-    fileData.forEach(function(f){ f.id = parseInt(f.id)||f.id; });
+    fileData.forEach(function(f){
+      f.id = parseInt(f.id)||f.id;
+      // toGroupが配列でなくオブジェクトになっている場合を修正
+      if(f.toGroup && !Array.isArray(f.toGroup)){
+        f.toGroup = Object.values(f.toGroup);
+      }
+      if(!f.toGroup) f.toGroup = [];
+    });
     renderFiles(); updateFileNotice();
   });
 }
@@ -947,9 +954,13 @@ function renderFiles(){
   var list=document.getElementById("fileList"); list.innerHTML="";
   // 自分宛 or 自分が送った or グループ宛 のみ表示
   var myFiles=fileData.filter(function(f){
-    if(f.from===hUser.name) return true; // 自分が送った
-    if(f.to===hUser.name) return true;   // 自分宛
-    if(f.toGroup && f.toGroup.indexOf(hUser.name)>=0) return true; // グループ宛
+    if(f.from===hUser.name) return true;
+    if(f.to===hUser.name) return true;
+    var tg = f.toGroup;
+    if(tg){
+      if(Array.isArray(tg) && tg.indexOf(hUser.name)>=0) return true;
+      if(!Array.isArray(tg) && Object.values(tg).indexOf(hUser.name)>=0) return true;
+    }
     return false;
   });
   if(!myFiles.length){ list.innerHTML="<div style='text-align:center;padding:20px;color:var(--sub)'>"+t("noFile")+"</div>"; return; }
@@ -984,7 +995,11 @@ function renderFiles(){
 function updateFileNotice(){
   var myFiles=fileData.filter(function(f){
     if(f.to===hUser.name) return true;
-    if(f.toGroup && f.toGroup.indexOf(hUser.name)>=0) return true;
+    var tg = f.toGroup;
+    if(tg){
+      if(Array.isArray(tg) && tg.indexOf(hUser.name)>=0) return true;
+      if(!Array.isArray(tg) && Object.values(tg).indexOf(hUser.name)>=0) return true;
+    }
     return false;
   });
   var card=document.getElementById("fileNoticeCard"), notice=document.getElementById("fileNotice");
