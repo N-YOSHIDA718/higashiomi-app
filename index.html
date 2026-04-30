@@ -102,9 +102,10 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 .sync-bar{background:#e8f5ee;border-radius:8px;padding:6px 12px;font-size:12px;color:#2a7a4a;text-align:center;margin-bottom:8px;display:none}
 .filt-btn{background:#f0f4ff;border:1.5px solid var(--bd);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--sub);white-space:nowrap}
 .filt-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.vbtn-wrap{display:flex;gap:6px;margin-bottom:10px}
 .vbtn{background:#f0f4ff;border:1.5px solid var(--bd);border-radius:20px;padding:7px 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--sub);flex:1;text-align:center}
 .vbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-.vbtn-wrap{display:flex;gap:6px;margin-bottom:10px}
+.cal-chip{display:block;font-size:8px;background:var(--navy);color:#fff;border-radius:3px;padding:1px 3px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.5;max-width:100%}
 .wk-row{background:#f9fbff;border-radius:10px;margin-bottom:8px;overflow:hidden;border:0.5px solid var(--bd)}
 .wk-dh{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f0f4fb;cursor:pointer}
 .wk-dn{font-size:13px;font-weight:700;color:var(--navy)}
@@ -119,8 +120,7 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 .wk-info{flex:1;min-width:0}
 .wk-time{font-size:11px;color:var(--sub);font-weight:500}
 .wk-title{font-size:13px;font-weight:700;color:#1a1a2e;margin:2px 0}
-.wk-meta{font-size:11px;color:var(--sub);line-height:1.5}
-.cal-name-chip{display:block;font-size:8px;background:var(--navy);color:#fff;border-radius:3px;padding:1px 3px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.5}
+.wk-meta{font-size:11px;color:var(--sub);line-height:1.6}
 </style>
 </head>
 <body>
@@ -215,18 +215,16 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
       <button class="vbtn" id="vbtn-week" onclick="setCalView('week')">📋 週表示</button>
     </div>
     <div class="cn"><button class="ca" onclick="chPeriod(-1)">◀</button><div class="cm" id="calLabel"></div><button class="ca" onclick="chPeriod(1)">▶</button></div>
-    <!-- 月表示 -->
     <div id="calMonthWrap">
-    <div class="cg" id="calGrid"></div>
-    <div class="cl">
-      <div class="li"><div class="lb2" style="background:#f0f8f4;border:1px solid #cde"></div><span>出勤日</span></div>
-      <div class="li"><div class="lb2" style="background:#fef6f6;border:1px solid #f8caca"></div><span>休日</span></div>
-      <div class="li"><div class="lb2" style="background:var(--navy)"></div><span>今日</span></div>
-      <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex-shrink:0"></div><span>予定あり</span></div>
+      <div class="cg" id="calGrid"></div>
+      <div class="cl">
+        <div class="li"><div class="lb2" style="background:#f0f8f4;border:1px solid #cde"></div><span>出勤日</span></div>
+        <div class="li"><div class="lb2" style="background:#fef6f6;border:1px solid #f8caca"></div><span>休日</span></div>
+        <div class="li"><div class="lb2" style="background:var(--navy)"></div><span>今日</span></div>
+        <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex-shrink:0"></div><span>予定あり</span></div>
+      </div>
+      <div class="cs" id="calSum"></div>
     </div>
-    <div class="cs" id="calSum"></div>
-    </div>
-    <!-- 週表示 -->
     <div id="calWeekWrap" style="display:none">
       <div id="weekGrid"></div>
     </div>
@@ -663,24 +661,20 @@ function onMemberSel(){
 function openAddSched(){
   modalMode="sched";
   var d=selDate||todayStr;
-  var memberSel="<option value=''>"+t("plSelect")+"</option>"+
-    "<option value='全員'>👥 全員</option>"+
-    deptOpts2()+
-    "<optgroup label='個人で選択'>"+
-    staff.map(function(s){ return "<option value='"+s.name+"'>"+s.name+" ("+s.dept+")</option>"; }).join("")+
-    "</optgroup>";
+  var memberChecks=staff.map(function(s){
+    return "<label style='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #eef;cursor:pointer'>"+
+      "<input type='checkbox' class='fmember-cb' value='"+s.name+"' style='width:17px;height:17px;accent-color:var(--navy);flex-shrink:0'>"+
+      "<span style='font-size:13px'>"+s.name+" <span style='font-size:11px;color:var(--sub)'>("+s.dept+")</span></span></label>";
+  }).join("");
   openModal(t("addSchedT"),
     "<div class='fg'><label class='fl'>"+t("dateLbl")+"</label><input class='fi' type='date' id='fdate' value='"+d+"'></div>"+
     "<div class='tr'><div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='fstart'>"+timeOpts("09:00")+"</select></div>"+
-    "<div class='fg'><label class='fl'>" + t("endLbl") + "</label><select class='fi' id='fend'>" + timeOpts("10:00") + "</select></div></div>" +
-    "<div class='fg'><label class='fl'>" + t("contentLbl") + "</label><input class='fi' id='ftitle' placeholder='" + t("plContent") + "'></div>" +
-    "<div class='fg'><label class='fl'>📝 投稿者（自動入力）</label><div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--navy)'>" + hUser.name + "</div></div>" +
-    "<div class='fg'><label class='fl'>👥 参加メンバー</label>" +
-    "<select class='fi' id='fmember' onchange='onMemberSel()'>" + memberSel + "</select></div>" +
-    "<div class='fg' id='fmemberExtra' style='display:none'><label class='fl'>追加メンバー（複数可）</label>" +
-    "<select class='fi' id='fmember2' multiple style='height:120px'>" +
-    staff.map(function(s){ return "<option value='" + s.name + "'>" + s.name + " (" + s.dept + ")</option>"; }).join("") +
-    "</select><div style='font-size:11px;color:var(--sub);margin-top:4px'>※ 複数選ぶ場合はCtrlキー（スマホは長押し）を押しながらタップ</div></div>"
+    "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='fend'>"+timeOpts("10:00")+"</select></div></div>"+
+    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='ftitle' placeholder='"+t("plContent")+"'></div>"+
+    "<div class='fg'><label class='fl' style='margin-bottom:3px'>📝 投稿者</label>"+
+    "<div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--navy)'>"+hUser.name+"</div></div>"+
+    "<div class='fg'><label class='fl' style='margin-bottom:6px'>👥 参加メンバー <span style='font-size:11px;color:var(--sub);font-weight:400'>（任意・複数選択可）</span></label>"+
+    "<div style='max-height:160px;overflow-y:auto;border:0.5px solid var(--bd);border-radius:8px;padding:4px 10px'>"+memberChecks+"</div></div>"
   );
 }
 function openAddBoard(){
@@ -783,26 +777,13 @@ function submitModal(){
     var ti=document.getElementById("ftitle").value.trim();
     var st=document.getElementById("fstart").value;
     var en=document.getElementById("fend").value;
-    var mb=document.getElementById("fmember").value;
     if(!ti){ showToast(t("needContent")); return; }
     if(st>=en){ showToast(t("timeErr")); return; }
     if(!schedData[d]) schedData[d]=[];
     schedIdCounter++;
-    // メンバー処理
-    var memberStr=mb;
-    if(mb && mb.indexOf("dept:")===0){
-      var dept=mb.slice(5);
-      var names=staff.filter(function(s){ return s.dept===dept; }).map(function(s){ return s.name; });
-      memberStr=names.join("、");
-    } else if(mb && mb!=="" && mb!=="全員"){
-      // 追加メンバーがあれば結合
-      var extra2=document.getElementById("fmember2");
-      if(extra2){
-        var extras=Array.from(extra2.selectedOptions).map(function(o){ return o.value; });
-        extras=extras.filter(function(n){ return n!==mb; });
-        if(extras.length>0) memberStr=mb+"、"+extras.join("、");
-      }
-    }
+    // チェックボックスから参加メンバー取得（任意）
+    var checked=document.querySelectorAll(".fmember-cb:checked");
+    var memberStr=Array.from(checked).map(function(cb){ return cb.value; }).join("、");
     schedData[d].push({id:schedIdCounter,st:st,et:en,title:ti,member:memberStr,poster:hUser.name});
     schedData[d].sort(function(a,b){ return a.st>b.st?1:-1; });
     saveData();
@@ -903,11 +884,9 @@ function markRead(id){
   if(!b) return;
   if(!b.readBy) b.readBy=[];
   if(!Array.isArray(b.readBy)) b.readBy=Object.values(b.readBy);
-  if(b.readBy.indexOf(hUser.name)<0) b.readBy.push(hUser.name);
-  // Firebase に即時保存
-  if(db){
-    try{ db.ref("boardData").set(boardData); }catch(e){}
-  }
+  if(b.readBy.indexOf(hUser.name)>=0){ showToast("☑ すでに既読です"); return; }
+  b.readBy.push(hUser.name);
+  if(db){ try{ db.ref("boardData").set(boardData); }catch(e){} }
   try{ localStorage.setItem("board2",JSON.stringify(boardData)); }catch(e){}
   renderBoard(); renderHomeBoard(); updateDots();
   showToast("✅ 既読にしました");
@@ -1037,7 +1016,6 @@ function showToast(msg){ var el=document.getElementById("toast"); el.textContent
 
 function renderCal(){
   if(calView==="week"){ renderWeekView(); return; }
-  // 月表示
   document.getElementById("calLabel").textContent=calY+"年 "+months[lang][calM-1];
   var grid=document.getElementById("calGrid"); grid.innerHTML="";
   dayNames[lang].forEach(function(d){ var h=document.createElement("div"); h.className="ch"; h.textContent=d; grid.appendChild(h); });
@@ -1057,18 +1035,14 @@ function renderCal(){
       var dayEvs=getFilteredSched(ds);
       if(dayEvs.length) cls+=" hs";
       var el=document.createElement("div"); el.className=cls;
-      // 日付番号
       var numDiv=document.createElement("div");
       numDiv.style.cssText="font-size:12px;font-weight:700;text-align:center;line-height:1.8";
       numDiv.textContent=d;
       el.appendChild(numDiv);
-      // 投稿者名チップ（最大2件）
       dayEvs.slice(0,2).forEach(function(s){
-        var nm=(s.poster||"").split(" ")[0]||(s.member||"").split("、")[0].split(" ")[0]||"";
+        var nm=(s.poster||"").split(" ")[0]||"";
         if(!nm) return;
-        var chip=document.createElement("span");
-        chip.className="cal-name-chip";
-        chip.textContent=nm;
+        var chip=document.createElement("span"); chip.className="cal-chip"; chip.textContent=nm;
         el.appendChild(chip);
       });
       if(dayEvs.length>2){
@@ -1085,15 +1059,13 @@ function renderCal(){
     calM+t("workCnt")+wc+t("dayu")+t("offCnt")+oc+t("dayu"):
     months[lang][calM-1]+": "+t("workCnt")+wc+t("dayu")+t("offCnt")+oc+t("dayu");
 }
-var WEEK_COLORS=["#1a3a7a","#2a7a4a","#8a2020","#6a2a8a","#1a6a7a","#c07010","#1a6a3a"];
+var WK_COLS=["#1a3a7a","#2a7a4a","#8a2020","#6a2a8a","#1a6a7a","#c07010","#1a6a3a","#7a3a1a"];
 function renderWeekView(){
-  // 今週の日曜を基準に weekOffset 週ずらす
   var now=new Date();
   var sun=new Date(now); sun.setDate(now.getDate()-now.getDay()+weekOffset*7);
   var sat=new Date(sun); sat.setDate(sun.getDate()+6);
-  function fmt(dt){ return (dt.getMonth()+1)+"月"+dt.getDate()+"日"; }
-  document.getElementById("calLabel").textContent=
-    sun.getFullYear()+"年 "+fmt(sun)+" 〜 "+fmt(sat);
+  function fmtMD(dt){ return (dt.getMonth()+1)+"月"+dt.getDate()+"日"; }
+  document.getElementById("calLabel").textContent=sun.getFullYear()+"年 "+fmtMD(sun)+" 〜 "+fmtMD(sat);
   var dowJa=["日","月","火","水","木","金","土"];
   var html="";
   for(var i=0;i<7;i++){
@@ -1111,10 +1083,11 @@ function renderWeekView(){
       html+="<div class='wk-noev'>予定なし</div>";
     } else {
       evs.forEach(function(s,si){
-        var col=WEEK_COLORS[si%WEEK_COLORS.length];
-        var posterHtml=s.poster?"📝 "+s.poster+"":"";
-        var memberHtml=s.member&&s.member!==s.poster?"👥 "+s.member:"";
-        var meta=[posterHtml,memberHtml].filter(Boolean).join("　");
+        var col=WK_COLS[si%WK_COLS.length];
+        var lines=[];
+        if(s.poster) lines.push("📝 "+s.poster);
+        if(s.member) lines.push("👥 "+s.member);
+        var meta=lines.join("　");
         html+="<div class='wk-item' onclick='selectDay(\""+ds+"\")'>";
         html+="<div class='wk-bar' style='background:"+col+"'></div>";
         html+="<div class='wk-info'>";
@@ -1142,7 +1115,6 @@ function chPeriod(dir){
   renderCal();
 }
 function chMonth(dir){ chPeriod(dir); }
-
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
 function openEditSched(ds, id){
   var data=schedData[ds]||[];
