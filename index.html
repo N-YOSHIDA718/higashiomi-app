@@ -102,24 +102,25 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 .sync-bar{background:#e8f5ee;border-radius:8px;padding:6px 12px;font-size:12px;color:#2a7a4a;text-align:center;margin-bottom:8px;display:none}
 .filt-btn{background:#f0f4ff;border:1.5px solid var(--bd);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--sub);white-space:nowrap}
 .filt-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-.vbtn{background:#f0f4ff;border:1.5px solid var(--bd);border-radius:20px;padding:6px 18px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);font-weight:500;flex:1;max-width:140px}
+.vbtn{background:#f0f4ff;border:1.5px solid var(--bd);border-radius:20px;padding:7px 0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--sub);flex:1;text-align:center}
 .vbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.vbtn-wrap{display:flex;gap:6px;margin-bottom:10px}
 .wk-row{background:#f9fbff;border-radius:10px;margin-bottom:8px;overflow:hidden;border:0.5px solid var(--bd)}
-.wk-dh{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f0f4fb}
+.wk-dh{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f0f4fb;cursor:pointer}
 .wk-dn{font-size:13px;font-weight:700;color:var(--navy)}
-.wk-dn.today-hd{background:var(--navy);color:#fff;border-radius:8px;padding:2px 8px}
-.wk-dn.od-hd{color:var(--red)}
+.wk-dn.is-today{background:var(--navy);color:#fff;border-radius:8px;padding:2px 8px}
+.wk-dn.is-off{color:var(--red)}
 .wk-cnt{font-size:11px;color:var(--sub)}
-.wk-ev{padding:6px 12px}
-.wk-noev{font-size:12px;color:#ccc;padding:4px 0 2px}
-.wk-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid #eef}
+.wk-ev{padding:4px 12px 8px}
+.wk-noev{font-size:12px;color:#ccc;padding:6px 0 2px}
+.wk-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:0.5px solid #eef;cursor:pointer}
 .wk-item:last-child{border-bottom:none}
-.wk-line{width:4px;border-radius:2px;align-self:stretch;min-height:36px;flex-shrink:0}
-.wk-info{flex:1}
+.wk-bar{width:4px;border-radius:2px;align-self:stretch;min-height:38px;flex-shrink:0}
+.wk-info{flex:1;min-width:0}
 .wk-time{font-size:11px;color:var(--sub);font-weight:500}
-.wk-title{font-size:13px;font-weight:700;color:#1a1a2e;margin:1px 0}
-.wk-poster{font-size:11px;color:var(--sub)}
-.wk-member{font-size:11px;color:var(--sub)}
+.wk-title{font-size:13px;font-weight:700;color:#1a1a2e;margin:2px 0}
+.wk-meta{font-size:11px;color:var(--sub);line-height:1.5}
+.cal-name-chip{display:block;font-size:8px;background:var(--navy);color:#fff;border-radius:3px;padding:1px 3px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.5}
 </style>
 </head>
 <body>
@@ -209,12 +210,13 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
     </div>
   </div>
   <div class="card">
-    <div style="display:flex;justify-content:center;gap:6px;margin-bottom:10px">
-      <button id="vbtn-month" class="vbtn on" onclick="setCalView('month')">📅 月表示</button>
-      <button id="vbtn-week" class="vbtn" onclick="setCalView('week')">📋 週表示</button>
+    <div class="vbtn-wrap">
+      <button class="vbtn on" id="vbtn-month" onclick="setCalView('month')">📅 月表示</button>
+      <button class="vbtn" id="vbtn-week" onclick="setCalView('week')">📋 週表示</button>
     </div>
     <div class="cn"><button class="ca" onclick="chPeriod(-1)">◀</button><div class="cm" id="calLabel"></div><button class="ca" onclick="chPeriod(1)">▶</button></div>
-    <div id="calMonthView">
+    <!-- 月表示 -->
+    <div id="calMonthWrap">
     <div class="cg" id="calGrid"></div>
     <div class="cl">
       <div class="li"><div class="lb2" style="background:#f0f8f4;border:1px solid #cde"></div><span>出勤日</span></div>
@@ -223,8 +225,9 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
       <div class="li"><div style="width:9px;height:9px;border-radius:50%;background:var(--gold);flex-shrink:0"></div><span>予定あり</span></div>
     </div>
     <div class="cs" id="calSum"></div>
-    </div><!-- /calMonthView -->
-    <div id="calWeekView" style="display:none">
+    </div>
+    <!-- 週表示 -->
+    <div id="calWeekWrap" style="display:none">
       <div id="weekGrid"></div>
     </div>
   </div>
@@ -425,7 +428,7 @@ function saveFileData(){
 function pad(n){ return String(n).padStart(2,"0"); }
 
 // ===== グローバル =====
-var lang="ja", curPg="home", calY=2026, calM=4, selDate=null, modalMode="", schedIdCounter=100, schedFilter="all", calView="month";
+var lang="ja", curPg="home", calY=2026, calM=4, selDate=null, modalMode="", schedIdCounter=100, schedFilter="all", calView="month", weekOffset=0;
 var ADMIN_NAME="吉田 尚未"; // 管理者名
 var todayD=new Date();
 var todayStr=todayD.getFullYear()+"-"+pad(todayD.getMonth()+1)+"-"+pad(todayD.getDate());
@@ -669,13 +672,14 @@ function openAddSched(){
   openModal(t("addSchedT"),
     "<div class='fg'><label class='fl'>"+t("dateLbl")+"</label><input class='fi' type='date' id='fdate' value='"+d+"'></div>"+
     "<div class='tr'><div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='fstart'>"+timeOpts("09:00")+"</select></div>"+
-    "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='fend'>"+timeOpts("10:00")+"</select></div></div>"+
-    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='ftitle' placeholder='"+t("plContent")+"'></div>"+
-    "<div class='fg'><label class='fl'>参加メンバー</label>"+
-    "<select class='fi' id='fmember' onchange='onMemberSel()'>"+memberSel+"</select></div>"+
-    "<div class='fg' id='fmemberExtra' style='display:none'><label class='fl'>追加メンバー（複数可）</label>"+
-    "<select class='fi' id='fmember2' multiple style='height:120px'>"+
-    staff.map(function(s){ return "<option value='"+s.name+"'>"+s.name+" ("+s.dept+")</option>"; }).join("")+
+    "<div class='fg'><label class='fl'>" + t("endLbl") + "</label><select class='fi' id='fend'>" + timeOpts("10:00") + "</select></div></div>" +
+    "<div class='fg'><label class='fl'>" + t("contentLbl") + "</label><input class='fi' id='ftitle' placeholder='" + t("plContent") + "'></div>" +
+    "<div class='fg'><label class='fl'>📝 投稿者（自動入力）</label><div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--navy)'>" + hUser.name + "</div></div>" +
+    "<div class='fg'><label class='fl'>👥 参加メンバー</label>" +
+    "<select class='fi' id='fmember' onchange='onMemberSel()'>" + memberSel + "</select></div>" +
+    "<div class='fg' id='fmemberExtra' style='display:none'><label class='fl'>追加メンバー（複数可）</label>" +
+    "<select class='fi' id='fmember2' multiple style='height:120px'>" +
+    staff.map(function(s){ return "<option value='" + s.name + "'>" + s.name + " (" + s.dept + ")</option>"; }).join("") +
     "</select><div style='font-size:11px;color:var(--sub);margin-top:4px'>※ 複数選ぶ場合はCtrlキー（スマホは長押し）を押しながらタップ</div></div>"
   );
 }
@@ -894,6 +898,20 @@ function delSched(ds,id){
   if(!dbReady){ renderDayDetail(ds); renderCal(); renderTodaySlots(); }
   showToast(t("deleted"));
 }
+function markRead(id){
+  var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; });
+  if(!b) return;
+  if(!b.readBy) b.readBy=[];
+  if(!Array.isArray(b.readBy)) b.readBy=Object.values(b.readBy);
+  if(b.readBy.indexOf(hUser.name)<0) b.readBy.push(hUser.name);
+  // Firebase に即時保存
+  if(db){
+    try{ db.ref("boardData").set(boardData); }catch(e){}
+  }
+  try{ localStorage.setItem("board2",JSON.stringify(boardData)); }catch(e){}
+  renderBoard(); renderHomeBoard(); updateDots();
+  showToast("✅ 既読にしました");
+}
 function delBoard(id){
   if(!confirm(t("delBoard"))) return;
   var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; });
@@ -1019,6 +1037,7 @@ function showToast(msg){ var el=document.getElementById("toast"); el.textContent
 
 function renderCal(){
   if(calView==="week"){ renderWeekView(); return; }
+  // 月表示
   document.getElementById("calLabel").textContent=calY+"年 "+months[lang][calM-1];
   var grid=document.getElementById("calGrid"); grid.innerHTML="";
   dayNames[lang].forEach(function(d){ var h=document.createElement("div"); h.className="ch"; h.textContent=d; grid.appendChild(h); });
@@ -1039,25 +1058,24 @@ function renderCal(){
       if(dayEvs.length) cls+=" hs";
       var el=document.createElement("div"); el.className=cls;
       // 日付番号
-      var numDiv=document.createElement("div"); numDiv.style.cssText="text-align:center;font-size:12px;font-weight:700;line-height:1.8"; numDiv.textContent=d;
+      var numDiv=document.createElement("div");
+      numDiv.style.cssText="font-size:12px;font-weight:700;text-align:center;line-height:1.8";
+      numDiv.textContent=d;
       el.appendChild(numDiv);
       // 投稿者名チップ（最大2件）
-      if(dayEvs.length){
-        var chipWrap=document.createElement("div"); chipWrap.style.cssText="display:flex;flex-direction:column;gap:1px;overflow:hidden;width:100%";
-        dayEvs.slice(0,2).forEach(function(s){
-          var nm=s.poster||s.member||"";
-          if(nm==="全員") nm="全員"; else nm=nm.split("、")[0].split(" ")[0];
-          if(!nm) nm="";
-          var chip=document.createElement("div");
-          chip.style.cssText="font-size:8px;background:var(--navy);color:#fff;border-radius:3px;padding:1px 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.4";
-          chip.textContent=nm;
-          chipWrap.appendChild(chip);
-        });
-        if(dayEvs.length>2){
-          var more=document.createElement("div"); more.style.cssText="font-size:8px;color:var(--sub);text-align:center"; more.textContent="+"+( dayEvs.length-2);
-          chipWrap.appendChild(more);
-        }
-        el.appendChild(chipWrap);
+      dayEvs.slice(0,2).forEach(function(s){
+        var nm=(s.poster||"").split(" ")[0]||(s.member||"").split("、")[0].split(" ")[0]||"";
+        if(!nm) return;
+        var chip=document.createElement("span");
+        chip.className="cal-name-chip";
+        chip.textContent=nm;
+        el.appendChild(chip);
+      });
+      if(dayEvs.length>2){
+        var more=document.createElement("span");
+        more.style.cssText="font-size:8px;color:var(--sub);display:block;text-align:center";
+        more.textContent="+"+( dayEvs.length-2);
+        el.appendChild(more);
       }
       el.onclick=(function(ds){ return function(){ selectDay(ds); }; })(ds);
       grid.appendChild(el);
@@ -1067,61 +1085,64 @@ function renderCal(){
     calM+t("workCnt")+wc+t("dayu")+t("offCnt")+oc+t("dayu"):
     months[lang][calM-1]+": "+t("workCnt")+wc+t("dayu")+t("offCnt")+oc+t("dayu");
 }
-function chPeriod(dir){
-  if(calView==="month"){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} }
-  else { // week: move by 7 days
-    var base=weekBaseDate||new Date(calY,calM-1,1);
-    base=new Date(base.getTime()+dir*7*86400000);
-    weekBaseDate=base; calY=base.getFullYear(); calM=base.getMonth()+1;
-  }
-  renderCal();
-}
-function chMonth(dir){ chPeriod(dir); }
-var weekBaseDate=null;
-function setCalView(v){
-  calView=v;
-  document.getElementById("vbtn-month").classList.toggle("on",v==="month");
-  document.getElementById("vbtn-week").classList.toggle("on",v==="week");
-  document.getElementById("calMonthView").style.display=v==="month"?"block":"none";
-  document.getElementById("calWeekView").style.display=v==="week"?"block":"none";
-  if(v==="week" && !weekBaseDate){ var now=new Date(); weekBaseDate=new Date(now-now.getDay()*86400000); }
-  renderCal();
-}
+var WEEK_COLORS=["#1a3a7a","#2a7a4a","#8a2020","#6a2a8a","#1a6a7a","#c07010","#1a6a3a"];
 function renderWeekView(){
-  var base=weekBaseDate||new Date();
-  // Start of the week containing base (Sunday)
-  var sun=new Date(base); sun.setDate(base.getDate()-base.getDay());
-  var y=sun.getFullYear(),m=sun.getMonth()+1,d=sun.getDate();
-  document.getElementById("calLabel").textContent=y+"年 "+pad(m)+"月"+pad(d)+"日 〜 "+pad(m)+"月"+pad(new Date(sun.getTime()+6*86400000).getDate())+"日";
+  // 今週の日曜を基準に weekOffset 週ずらす
+  var now=new Date();
+  var sun=new Date(now); sun.setDate(now.getDate()-now.getDay()+weekOffset*7);
+  var sat=new Date(sun); sat.setDate(sun.getDate()+6);
+  function fmt(dt){ return (dt.getMonth()+1)+"月"+dt.getDate()+"日"; }
+  document.getElementById("calLabel").textContent=
+    sun.getFullYear()+"年 "+fmt(sun)+" 〜 "+fmt(sat);
   var dowJa=["日","月","火","水","木","金","土"];
   var html="";
   for(var i=0;i<7;i++){
-    var dt=new Date(sun.getTime()+i*86400000);
+    var dt=new Date(sun); dt.setDate(sun.getDate()+i);
     var ds=dt.getFullYear()+"-"+pad(dt.getMonth()+1)+"-"+pad(dt.getDate());
-    var dow=dt.getDay(), off=isOff(ds), isToday=ds===todayStr;
-    var dayName=(dt.getMonth()+1)+"月"+dt.getDate()+"日（"+dowJa[dow]+"）";
-    var dnCls="wk-dn"+(isToday?" today-hd":off?" od-hd":"");
+    var dow=dt.getDay(), off=isOff(ds), isToday=(ds===todayStr);
+    var dayLabel=(dt.getMonth()+1)+"月"+dt.getDate()+"日（"+dowJa[dow]+"）";
+    var dnCls="wk-dn"+(isToday?" is-today":off?" is-off":"");
     var evs=getFilteredSched(ds);
-    var cntTxt=evs.length>0?"<span class='wk-cnt'>"+evs.length+"件</span>":"";
+    var cntTxt=evs.length?"<span class='wk-cnt'>"+evs.length+"件</span>":"";
     html+="<div class='wk-row'>";
-    html+="<div class='wk-dh'><span class='"+dnCls+"'>"+dayName+"</span>"+cntTxt+"</div>";
+    html+="<div class='wk-dh' onclick='selectDay(\""+ds+"\")'><span class='"+dnCls+"'>"+dayLabel+"</span>"+cntTxt+"</div>";
     html+="<div class='wk-ev'>";
-    if(!evs.length){ html+="<div class='wk-noev'>予定なし</div>"; }
-    else {
-      evs.forEach(function(s){
-        var col=["#1a3a7a","#2a7a4a","#8a2020","#6a2a8a","#1a6a7a","#8a5a10"][s.id%6]||"var(--navy)";
-        var member=s.member?"<div class='wk-member'>👤 "+s.member+"</div>":"";
-        var poster=s.poster?"<div class='wk-poster'>📝 "+s.poster+"</div>":"";
+    if(!evs.length){
+      html+="<div class='wk-noev'>予定なし</div>";
+    } else {
+      evs.forEach(function(s,si){
+        var col=WEEK_COLORS[si%WEEK_COLORS.length];
+        var posterHtml=s.poster?"📝 "+s.poster+"":"";
+        var memberHtml=s.member&&s.member!==s.poster?"👥 "+s.member:"";
+        var meta=[posterHtml,memberHtml].filter(Boolean).join("　");
         html+="<div class='wk-item' onclick='selectDay(\""+ds+"\")'>";
-        html+="<div class='wk-line' style='background:"+col+"'></div>";
-        html+="<div class='wk-info'><div class='wk-time'>"+s.st+(s.et?" ～ "+s.et:"")+"</div><div class='wk-title'>"+s.title+"</div>"+member+poster+"</div>";
-        html+="</div>";
+        html+="<div class='wk-bar' style='background:"+col+"'></div>";
+        html+="<div class='wk-info'>";
+        html+="<div class='wk-time'>"+s.st+(s.et?" ～ "+s.et:"")+"</div>";
+        html+="<div class='wk-title'>"+s.title+"</div>";
+        if(meta) html+="<div class='wk-meta'>"+meta+"</div>";
+        html+="</div></div>";
       });
     }
     html+="</div></div>";
   }
   document.getElementById("weekGrid").innerHTML=html;
 }
+function setCalView(v){
+  calView=v;
+  document.getElementById("vbtn-month").classList.toggle("on",v==="month");
+  document.getElementById("vbtn-week").classList.toggle("on",v==="week");
+  document.getElementById("calMonthWrap").style.display=v==="month"?"block":"none";
+  document.getElementById("calWeekWrap").style.display=v==="week"?"block":"none";
+  renderCal();
+}
+function chPeriod(dir){
+  if(calView==="month"){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} }
+  else { weekOffset+=dir; }
+  renderCal();
+}
+function chMonth(dir){ chPeriod(dir); }
+
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
 function openEditSched(ds, id){
   var data=schedData[ds]||[];
