@@ -424,7 +424,7 @@ var todayD=new Date();
 var todayStr=todayD.getFullYear()+"-"+pad(todayD.getMonth()+1)+"-"+pad(todayD.getDate());
 
 // ===== 工場カレンダー =====
-var FHOL=["2026-04-05","2026-04-11","2026-04-12","2026-04-19","2026-04-26","2026-04-29","2026-04-30","2026-05-01","2026-05-02","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-05-09","2026-05-10","2026-05-16","2026-05-17","2026-05-23","2026-05-24","2026-05-31","2026-06-06","2026-06-07","2026-06-13","2026-06-14","2026-06-20","2026-06-21","2026-06-27","2026-06-28","2026-07-04","2026-07-05","2026-07-11","2026-07-12","2026-07-18","2026-07-19","2026-07-20","2026-07-25","2026-07-26","2026-08-02","2026-08-08","2026-08-09","2026-08-10","2026-08-11","2026-08-12","2026-08-13","2026-08-14","2026-08-15","2026-08-16","2026-08-22","2026-08-23","2026-08-29","2026-08-30","2026-09-05","2026-09-06","2026-09-12","2026-09-13","2026-09-19","2026-09-20","2026-09-21","2026-09-22","2026-09-23","2026-09-27","2026-10-03","2026-10-04","2026-10-10","2026-10-11","2026-10-12","2026-10-17","2026-10-18","2026-10-24","2026-10-25","2026-11-01","2026-11-03","2026-11-08","2026-11-14","2026-11-15","2026-11-22","2026-11-23","2026-11-28","2026-11-29","2026-12-05","2026-12-06","2026-12-12","2026-12-13","2026-12-19","2026-12-20","2026-12-26","2026-12-27","2026-12-28","2026-12-29","2026-12-30","2026-12-31","2027-01-01","2027-01-02","2027-01-03","2027-01-04","2027-01-05","2027-01-10","2027-01-11","2027-01-17","2027-01-23","2027-01-24","2027-01-31","2027-02-06","2027-02-07","2027-02-11","2027-02-14","2027-02-20","2027-02-21","2027-02-23","2027-02-28","2027-03-06","2027-03-07","2027-03-13","2027-03-14","2027-03-20","2027-03-21","2027-03-27","2027-03-28"];
+var FHOL=["2026-04-05", "2026-04-11", "2026-04-12", "2026-04-18", "2026-04-19", "2026-04-25", "2026-04-26", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-09", "2026-05-10", "2026-05-16", "2026-05-17", "2026-05-23", "2026-05-24", "2026-05-30", "2026-05-31", "2026-06-06", "2026-06-07", "2026-06-13", "2026-06-14", "2026-06-20", "2026-06-21", "2026-06-27", "2026-06-28", "2026-07-04", "2026-07-05", "2026-07-11", "2026-07-12", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-25", "2026-07-26", "2026-08-01", "2026-08-02", "2026-08-08", "2026-08-09", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-22", "2026-08-23", "2026-08-29", "2026-08-30", "2026-09-05", "2026-09-06", "2026-09-12", "2026-09-13", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-27", "2026-10-03", "2026-10-04", "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-18", "2026-10-24", "2026-10-25", "2026-10-31", "2026-11-01", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-14", "2026-11-15", "2026-11-21", "2026-11-22", "2026-11-23", "2026-11-29", "2026-12-05", "2026-12-06", "2026-12-12", "2026-12-13", "2026-12-19", "2026-12-20", "2026-12-26", "2026-12-27", "2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02", "2027-01-03", "2027-01-04", "2027-01-10", "2027-01-11", "2027-01-17", "2027-01-23", "2027-01-24", "2027-01-30", "2027-01-31", "2027-02-06", "2027-02-07", "2027-02-13", "2027-02-14", "2027-02-20", "2027-02-21", "2027-02-27", "2027-02-28", "2027-03-06", "2027-03-07", "2027-03-13", "2027-03-14", "2027-03-20", "2027-03-21", "2027-03-27", "2027-03-28"];
 function isOff(ds){ return FHOL.indexOf(ds)>=0; }
 
 // ===== スタッフ =====
@@ -652,11 +652,7 @@ function onMemberSel(){
 }
 function openAddSched(){
   modalMode="sched"; var d=selDate||todayStr;
-  var mc=staff.map(function(s){
-    return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #eef;cursor:pointer">'+
-      '<input type="checkbox" class="fmember-cb" value="'+s.name+'" style="width:17px;height:17px;accent-color:var(--navy);flex-shrink:0">'+
-      '<span style="font-size:13px">'+s.name+'<span style="font-size:11px;color:var(--sub)"> ('+s.dept+')</span></span></label>';
-  }).join("");
+  var mc=staff.map(function(s){ return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #eef;cursor:pointer"><input type="checkbox" class="fmember-cb" value="'+s.name+'" style="width:17px;height:17px;accent-color:var(--navy);flex-shrink:0"><span style="font-size:13px">'+s.name+'<span style="font-size:11px;color:var(--sub)"> ('+s.dept+')</span></span></label>'; }).join("");
   openModal(t("addSchedT"),
     "<div class='fg'><label class='fl'>"+t("dateLbl")+"</label><input class='fi' type='date' id='fdate' value='"+d+"'></div>"+
     "<div class='tr'><div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='fstart'>"+timeOpts("09:00")+"</select></div>"+
@@ -754,10 +750,8 @@ function submitModal(){
     var en=document.getElementById("feend").value;
     if(!ti){ showToast(t("needContent")); return; }
     if(st>=en){ showToast(t("timeErr")); return; }
-    var checked2=document.querySelectorAll(".femember-cb:checked");
-    var mb=Array.from(checked2).map(function(cb){ return cb.value; }).join("、");
-    var data=schedData[ds]||[];
-    var s=data.find(function(x){ return x.id===id; });
+    var checked2=document.querySelectorAll(".femember-cb:checked"); var mb=Array.from(checked2).map(function(cb){ return cb.value; }).join("、");
+    var data=schedData[ds]||[]; var s=data.find(function(x){ return x.id===id; });
     if(s){ s.st=st; s.et=en; s.title=ti; s.member=mb; }
     data.sort(function(a,b){ return a.st>b.st?1:-1; });
     saveData();
@@ -768,8 +762,7 @@ function submitModal(){
     var ti=document.getElementById("ftitle").value.trim();
     var st=document.getElementById("fstart").value;
     var en=document.getElementById("fend").value;
-    var checked=document.querySelectorAll(".fmember-cb:checked");
-    var memberStr=Array.from(checked).map(function(cb){ return cb.value; }).join("、");
+    var checked=document.querySelectorAll(".fmember-cb:checked"); var memberStr=Array.from(checked).map(function(cb){ return cb.value; }).join("、");
         schedData[d].push({id:schedIdCounter,st:st,et:en,title:ti,member:memberStr,poster:hUser.name});
     schedData[d].sort(function(a,b){ return a.st>b.st?1:-1; });
     saveData();
@@ -866,16 +859,13 @@ function delSched(ds,id){
   showToast(t("deleted"));
 }
 function markRead(id){
-  var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; });
-  if(!b) return;
-  if(!b.readBy) b.readBy=[];
-  if(!Array.isArray(b.readBy)) b.readBy=Object.values(b.readBy);
+  var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; }); if(!b) return;
+  if(!b.readBy) b.readBy=[]; if(!Array.isArray(b.readBy)) b.readBy=Object.values(b.readBy);
   if(b.readBy.indexOf(hUser.name)>=0){ showToast("☑ すでに既読です"); return; }
   b.readBy.push(hUser.name);
   if(db){ try{ db.ref("boardData").set(boardData); }catch(e){} }
   try{ localStorage.setItem("board2",JSON.stringify(boardData)); }catch(e){}
-  renderBoard(); renderHomeBoard(); updateDots();
-  showToast("✅ 既読にしました");
+  renderBoard(); renderHomeBoard(); updateDots(); showToast("✅ 既読にしました");
 }
 function delBoard(id){
   if(!confirm(t("delBoard"))) return;
@@ -1013,7 +1003,7 @@ function renderCal(){
       var ds=calY+"-"+pad(calM)+"-"+pad(d);
       var off=isOff(ds);
       if(off) oc++; else wc++;
-      var cls="cd " + (ds===todayStr?"today":ds===selDate?"sel":off?"od":"wd");
+      var cls="cd "+(ds===todayStr?"today":ds===selDate?"sel":off?"od":"wd");
       var dayEvs=getFilteredSched(ds);
       if(dayEvs.length) cls+=" hs";
       var el=document.createElement("div"); el.className=cls;
@@ -1021,18 +1011,11 @@ function renderCal(){
       numDiv.style.cssText="font-size:12px;font-weight:700;text-align:center;line-height:1.8";
       numDiv.textContent=d; el.appendChild(numDiv);
       dayEvs.slice(0,2).forEach(function(s){
-        var nm="";
-        if(s.poster) nm=s.poster.split(" ")[0];
-        else if(s.member) nm=s.member.split("、")[0].split(" ")[0];
-        else if(s.title) nm=s.title.slice(0,4);
+        var nm=""; if(s.poster) nm=s.poster.split(" ")[0]; else if(s.member) nm=s.member.split("、")[0].split(" ")[0]; else if(s.title) nm=s.title.slice(0,4);
         if(!nm) return;
         var chip=document.createElement("span"); chip.className="cal-chip"; chip.textContent=nm; el.appendChild(chip);
       });
-      if(dayEvs.length>2){
-        var more=document.createElement("span");
-        more.style.cssText="font-size:8px;color:var(--sub);display:block;text-align:center";
-        more.textContent="+"+(dayEvs.length-2); el.appendChild(more);
-      }
+      if(dayEvs.length>2){ var more=document.createElement("span"); more.style.cssText="font-size:8px;color:var(--sub);display:block;text-align:center"; more.textContent="+"+(dayEvs.length-2); el.appendChild(more); }
       el.onclick=(function(ds){ return function(){ selectDay(ds); }; })(ds);
       grid.appendChild(el);
     })(dd);
@@ -1047,62 +1030,31 @@ function renderWeekView(){
   function fmtMD(dt){ return (dt.getMonth()+1)+"月"+dt.getDate()+"日"; }
   var sat=new Date(sun); sat.setDate(sun.getDate()+6);
   document.getElementById("calLabel").textContent=sun.getFullYear()+"年 "+fmtMD(sun)+" 〜 "+fmtMD(sat);
-  var dowJa=["日","月","火","水","木","金","土"];
-  var html="";
+  var dowJa=["日","月","火","水","木","金","土"]; var html="";
   for(var i=0;i<7;i++){
     var dt=new Date(sun); dt.setDate(sun.getDate()+i);
     var ds=dt.getFullYear()+"-"+pad(dt.getMonth()+1)+"-"+pad(dt.getDate());
     var off2=isOff(ds), isToday2=(ds===todayStr);
-    var dayLabel=(dt.getMonth()+1)+"月"+dt.getDate()+"日\uff08"+dowJa[dt.getDay()]+"\uff09";
-    var dnCls="wk-dn"+(isToday2?" is-today":"");
-    var rowBg=off2?"wk-off":"wk-work";
-    var evs=getFilteredSched(ds);
-    var cntTxt=evs.length?"<span class='wk-cnt'>"+evs.length+"件</span>":"";
-    html+="<div class='wk-row "+rowBg+"'>";
-    html+="<div class='wk-dh' onclick='selectDay(\""+ds+"\")' >";
-    html+="<span class='"+dnCls+"'>" +dayLabel+"</span>"+cntTxt+"</div>";
-    html+="<div class='wk-ev'>";
+    var dayLabel=(dt.getMonth()+1)+"月"+dt.getDate()+"日\uff08"+["日","月","火","水","木","金","土"][dt.getDay()]+"\uff09";
+    var dnCls="wk-dn"+(isToday2?" is-today":""); var rowBg=off2?"wk-off":"wk-work";
+    var evs=getFilteredSched(ds); var cntTxt=evs.length?"<span class='wk-cnt'>"+evs.length+"件</span>":"";
+    html+="<div class='wk-row "+rowBg+"'><div class='wk-dh' onclick='selectDay(\""+ds+"\")' ><span class='"+dnCls+"'>" +dayLabel+"</span>"+cntTxt+"</div><div class='wk-ev'>";
     if(!evs.length){ html+="<div class='wk-noev'>予定なし</div>"; }
-    else { evs.forEach(function(s,si){
-      var col=WK_COLS[si%WK_COLS.length];
-      var lines2=[]; if(s.poster) lines2.push("📝 "+s.poster); if(s.member) lines2.push("👥 "+s.member);
-      html+="<div class='wk-item' onclick='selectDay(\""+ds+"\")' >";
-      html+="<div class='wk-bar' style='background:"+col+"'></div>";
-      html+="<div class='wk-info'><div class='wk-time'>"+s.st+(s.et?" 〜 "+s.et:"")+"</div>";
-      html+="<div class='wk-title'>"+s.title+"</div>";
-      if(lines2.length) html+="<div class='wk-meta'>"+lines2.join("　")+"</div>";
-      html+="</div></div>";
-    }); }
+    else { evs.forEach(function(s,si){ var col=WK_COLS[si%WK_COLS.length]; var lines2=[]; if(s.poster) lines2.push("📝 "+s.poster); if(s.member) lines2.push("👥 "+s.member);
+      html+="<div class='wk-item' onclick='selectDay(\""+ds+"\")' ><div class='wk-bar' style='background:"+col+"'></div><div class='wk-info'><div class='wk-time'>"+s.st+(s.et?" 〜 "+s.et:"")+"</div><div class='wk-title'>"+s.title+"</div>"+(lines2.length?"<div class='wk-meta'>"+lines2.join("　")+"</div>":"")+"</div></div>"; }); }
     html+="</div></div>";
   }
   document.getElementById("weekGrid").innerHTML=html;
 }
-function setCalView(v){
-  calView=v;
-  document.getElementById("vbtn-month").classList.toggle("on",v==="month");
-  document.getElementById("vbtn-week").classList.toggle("on",v==="week");
-  document.getElementById("calMonthWrap").style.display=v==="month"?"block":"none";
-  document.getElementById("calWeekWrap").style.display=v==="week"?"block":"none";
-  renderCal();
-}
-function chPeriod(dir){
-  if(calView==="month"){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} }
-  else { weekOffset+=dir; }
-  renderCal();
-}
+function setCalView(v){ calView=v; document.getElementById("vbtn-month").classList.toggle("on",v==="month"); document.getElementById("vbtn-week").classList.toggle("on",v==="week"); document.getElementById("calMonthWrap").style.display=v==="month"?"block":"none"; document.getElementById("calWeekWrap").style.display=v==="week"?"block":"none"; renderCal(); }
+function chPeriod(dir){ if(calView==="month"){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} } else { weekOffset+=dir; } renderCal(); }
 function chMonth(dir){ chPeriod(dir); }
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
 function openEditSched(ds, id){
-  var data=schedData[ds]||[];
-  var s=data.find(function(x){ return x.id===id; }); if(!s) return;
+  var data=schedData[ds]||[]; var s=data.find(function(x){ return x.id===id; }); if(!s) return;
   modalMode="editsched";
   var existing=(s.member||"").split("、").map(function(n){ return n.trim(); }).filter(Boolean);
-  var mc=staff.map(function(st2){
-    var chk=existing.indexOf(st2.name)>=0;
-    return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #eef;cursor:pointer">'+
-      '<input type="checkbox" class="femember-cb" value="'+st2.name+'"'+(chk?' checked':'')+' style="width:17px;height:17px;accent-color:var(--navy);flex-shrink:0">'+
-      '<span style="font-size:13px">'+st2.name+'<span style="font-size:11px;color:var(--sub)"> ('+st2.dept+')</span></span></label>';
-  }).join("");
+  var mc=staff.map(function(st2){ var chk=existing.indexOf(st2.name)>=0; return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #eef;cursor:pointer"><input type="checkbox" class="femember-cb" value="'+st2.name+'"'+(chk?' checked':'')+' style="width:17px;height:17px;accent-color:var(--navy);flex-shrink:0"><span style="font-size:13px">'+st2.name+'<span style="font-size:11px;color:var(--sub)"> ('+st2.dept+')</span></span></label>'; }).join("");
   document.getElementById("modalTitle").textContent="✏ 予定を編集";
   document.getElementById("modalBody").innerHTML=
     "<input type='hidden' id='feschedds' value='"+ds+"'>"+
@@ -1111,7 +1063,7 @@ function openEditSched(ds, id){
     "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='feend'>"+timeOpts(s.et||"10:00")+"</select></div>"+
     "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='fetitle' value='"+s.title+"'></div>"+
     "<div class='fg'><label class='fl' style='margin-bottom:4px'>📝 投稿者</label><div style='background:#f0f4ff;border-radius:8px;padding:9px 12px;font-size:14px;font-weight:600;color:var(--navy)'>"+(s.poster||hUser.name)+"</div></div>"+
-    "<div class='fg'><label class='fl' style='margin-bottom:6px'>👥 参加メンバー <span style='font-size:11px;color:var(--sub);font-weight:400'>（任意・複数OK）</span></label>"+
+    "<div class='fg'><label class='fl' style='margin-bottom:6px'>👥 參加メンバー <span style='font-size:11px;color:var(--sub);font-weight:400'>（任意・複数OK）</span></label>"+
     "<div style='max-height:160px;overflow-y:auto;border:0.5px solid var(--bd);border-radius:8px;padding:4px 10px'>"+mc+"</div></div>";
   document.getElementById("modal").classList.add("on");
 }
