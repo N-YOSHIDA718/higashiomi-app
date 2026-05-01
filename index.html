@@ -104,21 +104,30 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
 .cal-chip{display:block;font-size:8px;background:var(--navy);color:#fff;border-radius:3px;padding:1px 3px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.5;max-width:100%}
 .filt-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 
+/* ===== PC対応 (768px以上) ===== */
 @media(min-width:768px){
-  body{padding:0 16px}
-  .hdr{border-radius:0 0 12px 12px}
-  .card{padding:18px 22px}
-  .sr{grid-template-columns:1fr 1fr 1fr 1fr}
+  body{background:#e8ecf4}
+  .app{max-width:960px;margin:0 auto;box-shadow:0 2px 20px rgba(0,0,0,0.12);border-radius:0 0 16px 16px;overflow:hidden}
+  .hdr{padding:14px 24px}
+  nav{display:none}
+  .pc-tabs{display:flex!important}
+  .card{padding:18px 24px}
+  .sr{grid-template-columns:1fr 1fr 1fr}
   .sg{grid-template-columns:repeat(5,1fr)}
-  .pg.on{padding-bottom:20px}
-  .nb{display:none}
-  .pc-nav{display:flex!important}
-  #pdfModal .pdf-inner{width:80%;max-width:1000px;height:90vh}
+  .pg.on{padding:16px 16px 24px}
+  .fab{display:none}
 }
+/* ===== スマホ (767px以下) ===== */
 @media(max-width:767px){
-  .pc-nav{display:none!important}
+  .pc-tabs{display:none!important}
   .app{max-width:100%}
+  .pg.on{padding-bottom:80px}
 }
+
+.pc-tabs{display:flex;background:var(--navy)}
+.pc-tab{flex:1;padding:10px 6px;background:none;border:none;color:rgba(255,255,255,0.65);font-size:13px;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent;transition:all 0.2s;font-weight:500}
+.pc-tab:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.pc-tab.on{color:#fff;border-bottom:3px solid var(--gold);background:rgba(255,255,255,0.1)}
 </style>
 </head>
 <body>
@@ -138,6 +147,14 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
       <button class="nb" onclick="showPage('schedule')"><span style="font-size:19px;color:#fff">📅</span><span class="nd" id="sDot" style="display:none">0</span></button>
     </div>
   </div>
+</div>
+<div class="pc-tabs" style="display:none;background:var(--navy);border-top:1px solid rgba(255,255,255,0.12)">
+  <button class="pc-tab on" id="pt-home" onclick="showPage('home')">🏠 ホーム</button>
+  <button class="pc-tab" id="pt-schedule" onclick="showPage('schedule')">📅 スケジュール</button>
+  <button class="pc-tab" id="pt-board" onclick="showPage('board')">📋 伝言板</button>
+  <button class="pc-tab" id="pt-survey" onclick="showPage('survey')">📊 アンケート</button>
+  <button class="pc-tab" id="pt-staff" onclick="showPage('staff')">👥 名簿</button>
+  <button class="pc-tab" id="pt-files" onclick="showPage('files')">📎 ファイル</button>
 </div>
 <nav>
   <button class="nb2 on" id="n-home" onclick="showPage('home')"><span class="ni">🏠</span><span>ホーム</span></button>
@@ -587,10 +604,12 @@ function getFilteredSched(ds){
 function showPage(pg){
   document.querySelectorAll(".pg").forEach(function(p){ p.classList.remove("on"); });
   document.querySelectorAll(".nb2").forEach(function(b){ b.classList.remove("on"); });
+  document.querySelectorAll(".pc-tab").forEach(function(b){ b.classList.remove("on"); });
   document.getElementById("pg-"+pg).classList.add("on");
   document.getElementById("n-"+pg).classList.add("on");
+  var pt=document.getElementById("pt-"+pg);
+  if(pt) pt.classList.add("on");
   curPg=pg;
-
 }
 function onFab(){
   if(curPg==="schedule") openAddSched();
