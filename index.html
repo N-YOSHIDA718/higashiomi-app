@@ -237,9 +237,6 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
     </div>
     <div style="text-align:center;padding:24px 14px;color:var(--sub);font-size:14px;line-height:1.8" id="calHint">カレンダーの日付をタップすると<br>その日のスケジュールが表示されます</div>
   </div>
-</div>
-
-<div class="pg" 
   <div class="card" style="padding:10px">
     <div style="font-size:12px;color:var(--sub);margin-bottom:6px;font-weight:500">📋 表示するスケジュール</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap" id="schedFilter">
@@ -247,7 +244,9 @@ nav{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,0.
       <button class="filt-btn" onclick="setFilter('me')" id="filt-me">👤 自分</button>
     </div>
   </div>
-id="pg-board">
+</div>
+
+<div class="pg" id="pg-board">
   <div class="shd"><div style="font-size:17px;font-weight:700">📋 伝言板</div><button class="btn bsm bg" onclick="openAddBoard()">＋ 投稿</button></div>
   <div id="boardList"></div>
 </div>
@@ -1452,12 +1451,16 @@ function updateDots(){
   var sDot=document.getElementById("sDot"); sDot.textContent=todayCount; sDot.style.display=todayCount>0?"flex":"none";
   document.getElementById("todayCnt").textContent=todayCount;
   document.getElementById("unreadCnt").textContent=newCount;
-  // ホーム画面バッジ更新（PWA対応）
-  var totalBadge = newCount + todayCount;
-  if(navigator.setAppBadge){
-    if(totalBadge > 0){ navigator.setAppBadge(totalBadge); }
-    else { navigator.clearAppBadge(); }
-  }
+  // ホーム画面バッジ更新（PWA Badge API）
+  var totalBadge = newCount;
+  try{
+    if(navigator.setAppBadge){
+      if(totalBadge > 0){ navigator.setAppBadge(totalBadge); }
+      else { navigator.clearAppBadge(); }
+    }
+  }catch(e){}
+  // ブラウザタブのタイトルにも反映
+  document.title = totalBadge > 0 ? "(" + totalBadge + ") 東近江製作所" : "東近江製作所";
 }
 
 function clearAllData(){
