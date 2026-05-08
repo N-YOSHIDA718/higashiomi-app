@@ -925,13 +925,50 @@ function delBoard(id){
   showToast(t("deleted"));
 }
 function markRead(id){
-  var b=boardData.find(function(x){ return x.id===id||parseInt(x.id)===id; });
-  if(!b) return;
+  // IDで対象を探す（数値・文字列両対応）
+  var idx=-1;
+  for(var i=0;i<boardData.length;i++){
+    if(boardData[i].id===id||parseInt(boardData[i].id)===parseInt(id)){
+      idx=i; break;
+    }
+  }
+  if(idx<0){ showToast("伝言が見つかりません"); return; }
+  var b=boardData[idx];
   if(!b.readBy) b.readBy=[];
   if(!Array.isArray(b.readBy)) b.readBy=Object.values(b.readBy);
-  if(b.readBy.indexOf(hUser.name)>=0){ return; } // すでに既読
+  if(b.readBy.indexOf(hUser.name)>=0) return; // すでに既読
   b.readBy.push(hUser.name);
-  saveData();
+  // Firebaseに直接1件だけ更新（リスナーの上書きを防ぐため）
+  if(db){
+    try{
+      db.ref("boardData").once("value", function(snap){
+        var v=snap.val();
+        if(!v) return;
+        // Firebase上のキー（配列インデックスまたはオブジェクトキー）を特定
+        var keys=Object.keys(v);
+        for(var k=0;k<keys.length;k++){
+          var item=v[keys[k]];
+          if(!item) continue;
+          if(item.id===id||parseInt(item.id)===parseInt(id)){
+            var rb=item.readBy||[];
+            if(!Array.isArray(rb)) rb=Object.values(rb);
+            if(rb.indexOf(hUser.name)<0){
+              rb.push(hUser.name);
+              db.ref("boardData/"+keys[k]+"/readBy").set(rb);
+            }
+            break;
+          }
+        }
+      });
+    }catch(e){
+      // Firebaseが使えない場合はローカルのみ更新
+      try{ localStorage.setItem("board2", JSON.stringify(boardData)); }catch(e2){}
+    }
+  } else {
+    // オフライン時はローカルのみ
+    try{ localStorage.setItem("board2", JSON.stringify(boardData)); }catch(e){}
+  }
+  // UIをすぐに更新
   renderBoard(); renderHomeBoard(); updateDots();
   showToast("既読にしました");
 }
