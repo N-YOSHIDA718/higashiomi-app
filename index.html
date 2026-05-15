@@ -773,19 +773,43 @@ function submitModal(){
     applyUser(); saveUser(); showToast(t("updated"));
   } else if(modalMode==="editsched"){
     var ds=document.getElementById("feschedds").value;
-    var id=parseInt(document.getElementById("feschedid").value);
+    var newDs=document.getElementById("fescheddate")?document.getElementById("fescheddate").value:ds;
+    var id=document.getElementById("feschedid").value;
     var ti=document.getElementById("fetitle").value.trim();
     var st=document.getElementById("festart").value;
     var en=document.getElementById("feend").value;
     var mb=document.getElementById("femember").value;
     if(!ti){ showToast(t("needContent")); return; }
     if(st>=en){ showToast(t("timeErr")); return; }
+    if(!newDs){ showToast("日付を選択してください"); return; }
+    // 元の日付から対象スケジュールを探す（数値・文字列両対応）
     var data=schedData[ds]||[];
-    var s=data.find(function(x){ return x.id===id; });
-    if(s){ s.st=st; s.et=en; s.title=ti; s.member=mb; }
-    data.sort(function(a,b){ return a.st>b.st?1:-1; });
+    var sidx=-1;
+    for(var i=0;i<data.length;i++){
+      if(String(data[i].id)===String(id)||parseInt(data[i].id)===parseInt(id)){
+        sidx=i; break;
+      }
+    }
+    if(sidx<0){ showToast("予定が見つかりません"); return; }
+    var s=data[sidx];
+    if(newDs!==ds){
+      // 日付が変わる場合：元の日付から削除して新しい日付に追加
+      var moved={id:s.id,st:st,et:en,title:ti,member:mb,poster:s.poster||hUser.name};
+      data.splice(sidx,1);
+      if(!schedData[ds]||!schedData[ds].length) delete schedData[ds];
+      if(!schedData[newDs]) schedData[newDs]=[];
+      schedData[newDs].push(moved);
+      schedData[newDs].sort(function(a,b){ return a.st>b.st?1:-1; });
+    } else {
+      // 同じ日付の場合：そのまま更新
+      s.st=st; s.et=en; s.title=ti; s.member=mb;
+      data.sort(function(a,b){ return a.st>b.st?1:-1; });
+    }
     saveData();
-    if(!dbReady){ renderDayDetail(ds); renderCal(); renderTodaySlots(); }
+    if(!dbReady){
+      renderDayDetail(newDs); renderDayDetail(ds);
+      renderCal(); renderTodaySlots();
+    }
     showToast(t("updated"));
   } else if(modalMode==="sched"){
     var d=document.getElementById("fdate").value;
@@ -1209,15 +1233,19 @@ function chMonth(dir){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
 function openEditSched(ds, id){
   var data=schedData[ds]||[];
-  var s=data.find(function(x){ return x.id===id; }); if(!s) return;
+  // IDは数値・文字列どちらでも対応
+  var s=data.find(function(x){ return x.id===id||parseInt(x.id)===parseInt(id); });
+  if(!s){ showToast("予定が見つかりません"); return; }
   modalMode="editsched";
   document.getElementById("modalTitle").textContent="✏ 予定を編集";
+  // 日付フィールドを追加
   document.getElementById("modalBody").innerHTML=
     "<input type='hidden' id='feschedds' value='"+ds+"'>"+
     "<input type='hidden' id='feschedid' value='"+id+"'>"+
+    "<div class='fg'><label class='fl'>📅 日付</label><input type='date' class='fi' id='fescheddate' value='"+ds+"'></div>"+
     "<div class='fg'><label class='fl'>"+t("startLbl")+"</label><select class='fi' id='festart'>"+timeOpts(s.st)+"</select></div>"+
     "<div class='fg'><label class='fl'>"+t("endLbl")+"</label><select class='fi' id='feend'>"+timeOpts(s.et||"10:00")+"</select></div>"+
-    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='fetitle' value='"+s.title+"'></div>"+
+    "<div class='fg'><label class='fl'>"+t("contentLbl")+"</label><input class='fi' id='fetitle' value='"+s.title.replace(/'/g,"&#39;")+"'></div>"+
     "<div class='fg'><label class='fl'>"+t("memberLbl")+"</label><select class='fi' id='femember'>"+staffOpts()+"</select></div>";
   // 担当者を選択状態に
   setTimeout(function(){
