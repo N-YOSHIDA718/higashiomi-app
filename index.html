@@ -977,9 +977,19 @@ function submitModal(){
 
 function delSched(ds,id){
   if(!confirm(t("delSched"))) return;
-  if(schedData[ds]) schedData[ds]=schedData[ds].filter(function(s){ return s.id!==id; });
+  // schedData[ds]がオブジェクトの場合も配列に変換してからfilter
+  var raw=schedData[ds]||[];
+  var data=Array.isArray(raw)?raw:Object.values(raw);
+  data=data.filter(function(x){ return x&&x.id!==undefined; });
+  // IDを文字列比較で正確に1件だけ削除
+  data=data.filter(function(s){ return String(s.id)!==String(id); });
+  if(data.length===0){
+    delete schedData[ds];
+  } else {
+    schedData[ds]=data;
+  }
   saveData();
-  if(!dbReady){ renderDayDetail(ds); renderCal(); renderTodaySlots(); }
+  renderDayDetail(ds); renderCal(); renderTodaySlots();
   showToast(t("deleted"));
 }
 function delBoard(id){
@@ -1355,7 +1365,7 @@ function renderDayDetail(ds){
     var timeStr=s.st+(s.et?" ～ "+s.et:"");
     var mid=s.member?"<div style='font-size:12px;color:var(--sub);margin-top:3px'>👤 "+s.member+"</div>":"";
     var delBtn=document.createElement("button"); delBtn.className="db"; delBtn.textContent="✕";
-    delBtn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
+    delBtn.onclick=(function(ds2,sid){ return function(){ delSched(ds2,sid); }; })(ds,String(s.id));
     var editBtn=document.createElement("button"); editBtn.className="db"; editBtn.textContent="✏";
     editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1";
     editBtn.onclick=(function(ds2,sobj){ return function(){ openEditSchedDirect(ds2,sobj); }; })(ds,{id:s.id,st:s.st,et:s.et,title:s.title,member:s.member,poster:s.poster});
