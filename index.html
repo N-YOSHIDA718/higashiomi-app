@@ -782,11 +782,13 @@ function submitModal(){
     if(!ti){ showToast(t("needContent")); return; }
     if(st>=en){ showToast(t("timeErr")); return; }
     if(!newDs){ showToast("日付を選択してください"); return; }
-    // 元の日付から対象スケジュールを探す（数値・文字列両対応）
-    var data=schedData[ds]||[];
+    // 元の日付から対象スケジュールを探す
+    var raw2=schedData[ds]||[];
+    var data=Array.isArray(raw2)?raw2:Object.values(raw2);
+    data=data.filter(function(x){ return x&&x.id!==undefined; });
     var sidx=-1;
     for(var i=0;i<data.length;i++){
-      if(String(data[i].id)===String(id)||parseInt(data[i].id)===parseInt(id)){
+      if(String(data[i].id)===String(id)){
         sidx=i; break;
       }
     }
@@ -1232,9 +1234,12 @@ function renderCal(){
 function chMonth(dir){ calM+=dir; if(calM>12){calM=1;calY++;} if(calM<1){calM=12;calY--;} renderCal(); }
 function selectDay(ds){ selDate=ds; renderCal(); renderDayDetail(ds); document.getElementById("defCard").style.display="none"; document.getElementById("dayCard").style.display="block"; }
 function openEditSched(ds, id){
-  var data=schedData[ds]||[];
-  // IDは数値・文字列どちらでも対応
-  var s=data.find(function(x){ return x.id===id||parseInt(x.id)===parseInt(id); });
+  // schedData[ds]をArrayに変換（Firebaseがオブジェクトで返す場合も対応）
+  var raw=schedData[ds]||[];
+  var data=Array.isArray(raw)?raw:Object.values(raw);
+  data=data.filter(function(x){ return x&&x.id!==undefined; });
+  // IDは文字列比較で確実に一致させる
+  var s=data.find(function(x){ return String(x.id)===String(id); });
   if(!s){ showToast("予定が見つかりません"); return; }
   modalMode="editsched";
   document.getElementById("modalTitle").textContent="✏ 予定を編集";
@@ -1260,7 +1265,11 @@ function renderDayDetail(ds){
   document.getElementById("dayTitle").textContent=lang==="ja"?"📅 "+parts[1]+"月"+parts[2]+"日（"+dow+"）":"📅 Ngày "+parts[2]+"/"+parts[1]+" ("+dow+")";
   var slots=document.getElementById("daySlots"), noEl=document.getElementById("noSched");
   noEl.textContent=t("noSched");
-  var data=schedData[ds]||[];
+  // schedData[ds]がオブジェクトの場合も配列に変換
+  var raw=schedData[ds]||[];
+  var data=Array.isArray(raw)?raw:Object.values(raw);
+  data=data.filter(function(x){ return x&&x.id!==undefined; });
+  data.sort(function(a,b){ return (a.st||"")>(b.st||"")?1:-1; });
   if(!data.length){ slots.innerHTML=""; noEl.style.display="block"; return; }
   noEl.style.display="none"; slots.innerHTML="";
   data.forEach(function(s){
@@ -1271,7 +1280,7 @@ function renderDayDetail(ds){
     delBtn.onclick=(function(ds2,id){ return function(){ delSched(ds2,id); }; })(ds,s.id);
     var editBtn=document.createElement("button"); editBtn.className="db"; editBtn.textContent="✏";
     editBtn.style.cssText="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1";
-    editBtn.onclick=(function(ds2,id){ return function(){ openEditSched(ds2,id); }; })(ds,s.id);
+    editBtn.onclick=(function(ds2,sid){ return function(){ openEditSched(ds2,sid); }; })(ds,String(s.id));
     var transBtn2=document.createElement("button"); transBtn2.textContent="🌐"; transBtn2.title="翻訳";
     transBtn2.style.cssText="background:#e8f0fb;border:1px solid #b5d4f4;border-radius:4px;color:var(--navy);font-size:12px;cursor:pointer;padding:2px 5px;flex-shrink:0";
     transBtn2.onclick=(function(title,member){ return function(){
